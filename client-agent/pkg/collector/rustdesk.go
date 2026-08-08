@@ -158,6 +158,9 @@ func extractRustDeskIDFromTOML(filePath string) string {
 			return matches[1]
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("rustdesk collector: error scanning TOML config %s: %v", filePath, err)
+	}
 	return ""
 }
 

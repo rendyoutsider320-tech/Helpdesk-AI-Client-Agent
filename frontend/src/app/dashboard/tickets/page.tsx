@@ -1064,23 +1064,27 @@ export default function TicketsPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <h5 className="text-xs font-bold text-white">RustDesk Remote Control</h5>
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                                {linkedAsset?.rustdesk_status || 'online'}
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${linkedAsset?.rustdesk_id ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                {linkedAsset?.rustdesk_id ? (linkedAsset?.rustdesk_status || 'online') : 'not detected'}
                               </span>
                             </div>
                             <p className="text-[11px] font-mono text-amber-400 mt-0.5">
-                              ID Klien: <span className="font-bold tracking-wider">{linkedAsset?.rustdesk_id || '982341506'}</span>
+                              ID Klien: <span className="font-bold tracking-wider">{linkedAsset?.rustdesk_id || 'Belum Terdeteksi'}</span>
                             </p>
                           </div>
                         </div>
-                        <a
-                          href={`rustdesk://${linkedAsset?.rustdesk_id || '982341506'}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-amber-500/20"
-                        >
-                          🔌 Remote PC User
-                        </a>
+                        {linkedAsset?.rustdesk_id ? (
+                          <a
+                            href={`rustdesk://${linkedAsset.rustdesk_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+                          >
+                            🔌 Remote PC User
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-500 italic">Agent belum melapor ID</span>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

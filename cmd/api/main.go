@@ -1176,21 +1176,22 @@ func handleListAssets(c *gin.Context) {
 			assets[i].AssetInfo = info
 			itemModified = true
 		}
+		if assets[i].RustDeskID == "982341506" {
+			assets[i].RustDeskID = ""
+			assets[i].RustDeskStatus = ""
+			itemModified = true
+		}
 		if assets[i].RustDeskID == "" {
 			var reg db.AgentRegistry
-			if err := db.DB.Where("hostname = ?", assets[i].Hostname).First(&reg).Error; err == nil && reg.RustDeskID != "" {
+			if err := db.DB.Where("hostname = ?", assets[i].Hostname).First(&reg).Error; err == nil && reg.RustDeskID != "" && reg.RustDeskID != "982341506" {
 				assets[i].RustDeskID = reg.RustDeskID
 				assets[i].RustDeskStatus = reg.RustDeskStatus
 				itemModified = true
 			} else {
 				var dev db.Device
-				if err := db.DB.Where("device_name = ?", assets[i].Hostname).First(&dev).Error; err == nil && dev.RustDeskID != "" {
+				if err := db.DB.Where("device_name = ?", assets[i].Hostname).First(&dev).Error; err == nil && dev.RustDeskID != "" && dev.RustDeskID != "982341506" {
 					assets[i].RustDeskID = dev.RustDeskID
 					assets[i].RustDeskStatus = dev.RustDeskStatus
-					itemModified = true
-				} else {
-					assets[i].RustDeskID = "982341506"
-					assets[i].RustDeskStatus = "online"
 					itemModified = true
 				}
 			}

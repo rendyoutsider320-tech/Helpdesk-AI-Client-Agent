@@ -1,16 +1,16 @@
 ; =====================================================================
-; INNO SETUP SCRIPT: Helpdesk AI Client Agent Windows Installer (v3.2.0)
-; Automatic Background Windows Service Deployment with Deep Browser Telemetry & Auto-Restart
+; INNO SETUP SCRIPT: Helpdesk AI Client Agent Windows Installer (v3.7.0)
+; Automatic Background Windows Service Deployment with RustDesk Remote & Auto-Restart
 ; =====================================================================
 
 [Setup]
 AppId={{8F9A3B12-4C5D-6E7F-8A9B-0C1D2E3F4A5B}
 AppName=Helpdesk AI Client Agent
-AppVersion=3.2.0
+AppVersion=3.7.0
 AppPublisher=Helpdesk AI Team
 DefaultDirName={autopf}\HelpdeskAgent
 DefaultGroupName=Helpdesk AI
-OutputBaseFilename=HelpdeskAgent_Setup_v3.2.0
+OutputBaseFilename=HelpdeskAgent_Setup_v3.7.0
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin
@@ -22,9 +22,9 @@ UninstallDisplayIcon={app}\agent-client.exe
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; Salin executable agent-client.exe dan file konfigurasi .env
+; Salin executable agent-client.exe dan file konfigurasi .env (opsional)
 Source: "agent-client.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: ".env"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".env"; DestDir: "{app}"; Flags: ignoreversion; Tasks: ; OnlyIfDesirable: ; Check: FileExists(ExpandConstant('{src}\.env'))
 
 [Run]
 ; 1. Hapus service lama jika ada (agar instalasi bersih)

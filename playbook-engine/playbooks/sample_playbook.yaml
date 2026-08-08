@@ -1,0 +1,25 @@
+id: sample-collect-and-heal
+description: Collect telemetry, run diagnostics, apply fix, validate
+steps:
+  - name: collect-telemetry
+    action: collect_telemetry
+    args:
+      timeout: 30
+
+  - name: run-diagnostics
+    action: run_diagnostics
+    args:
+      target: 8.8.8.8
+
+  - name: restart-service
+    action: restart_service
+    args:
+      service_name: wuauserv
+      dry_run: true
+
+  - name: validate
+    action: validate_checks
+    args:
+      checks:
+        - ping
+        - service_status

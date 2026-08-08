@@ -1,0 +1,12 @@
+Package: helpdesk-agent
+Version: 2.0.0
+Architecture: amd64
+Maintainer: Helpdesk AI Team <admin@helpdesk.ai>
+Installed-Size: 15360
+Depends: systemd, ca-certificates
+Section: utils
+Priority: optional
+Homepage: https://10.20.0.46:3002
+Description: Helpdesk AI Client Agent Service for Ubuntu/Debian
+ Automated background telemetry, remote diagnostics, and AI auto-fix client service.
+ Service starts automatically on boot and auto-restarts on failure.

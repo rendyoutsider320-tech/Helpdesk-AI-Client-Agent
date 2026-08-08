@@ -1,0 +1,5 @@
+-- 014_add_ticket_enterprise_fields.up.sql
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS category VARCHAR(255);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS sub_category VARCHAR(255);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS device VARCHAR(255);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS department VARCHAR(255);

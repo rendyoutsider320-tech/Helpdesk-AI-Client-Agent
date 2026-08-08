@@ -1,0 +1,46 @@
+# Dockerfile for Go API Server
+
+FROM golang:1.26-alpine AS builder
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache git ca-certificates
+
+# Use the public Go proxy to avoid git prompts during module download
+ENV GOPROXY=https://proxy.golang.org,direct
+ENV GOSUMDB=sum.golang.org
+
+# Copy go.mod and go.sum if present to leverage Docker cache
+COPY go.mod* ./
+COPY go.sum* ./
+
+# Download Go module dependencies
+RUN go mod download
+
+# Copy the rest of the source
+COPY . .
+
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api ./cmd/api
+
+# Final minimal image
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates wget
+
+WORKDIR /root/
+
+# Copy the built binary from the builder stage
+COPY --from=builder /app/api ./api
+# Copy migrations folder for database schema setup
+COPY --from=builder /app/migrations ./migrations
+# Copy RBAC model config
+COPY --from=builder /app/internal/rbac/model.conf ./internal/rbac/model.conf
+
+EXPOSE 8090
+
+# Healthcheck uses SERVER_PORT env if provided, defaults to 8088
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider "http://localhost:${SERVER_PORT:-8088}/health" || exit 1
+
+CMD ["./api"]

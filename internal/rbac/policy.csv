@@ -1,0 +1,34 @@
+p, admin, create, ticket
+p, admin, read, ticket
+p, admin, update, ticket
+p, admin, delete, ticket
+p, admin, assign, ticket
+p, admin, resolve, ticket
+p, admin, create, device
+p, admin, read, device
+p, admin, update, device
+p, admin, delete, device
+p, admin, read, alert
+p, admin, create, user
+p, admin, read, user
+p, admin, update, user
+p, admin, delete, user
+p, admin, read, report
+
+p, technician, create, ticket
+p, technician, read, ticket
+p, technician, update, ticket
+p, technician, assign, ticket
+p, technician, resolve, ticket
+p, technician, read, device
+p, technician, read, alert
+p, technician, read, knowledge
+
+p, user, create, ticket
+p, user, read, ticket
+p, user, update, ticket
+p, user, read, knowledge
+
+g, admin, admin
+g, technician, technician
+g, user, user

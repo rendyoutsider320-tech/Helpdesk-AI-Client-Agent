@@ -1,0 +1,730 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+* {
+  border-color: #e5e7eb;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #eff6ff;
+  background-image: radial-gradient(ellipse at 10% 10%, rgba(56, 189, 248, 0.12), transparent 20%), radial-gradient(ellipse at 90% 90%, rgba(59, 130, 246, 0.08), transparent 25%);
+  color: #0f1724;
+  transition: background-color 0.5s ease, color 0.3s ease;
+}
+
+/* Deep Cyber-Neon Dark Mode Theme matching user image */
+html.dark body {
+  background-color: #050b14;
+  background-image: 
+    linear-gradient(rgba(0, 210, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 210, 255, 0.015) 1px, transparent 1px),
+    radial-gradient(ellipse at 10% 10%, rgba(0, 210, 255, 0.12), transparent 35%),
+    radial-gradient(ellipse at 90% 90%, rgba(139, 92, 246, 0.08), transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(16, 185, 129, 0.04), transparent 50%);
+  background-size: 35px 35px, 35px 35px, 100% 100%, 100% 100%, 100% 100%;
+  color: #e2e8f0;
+}
+
+html.light body {
+  background-color: #f5f3ec;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    radial-gradient(ellipse at 10% 10%, rgba(6, 182, 212, 0.08), transparent 30%),
+    radial-gradient(ellipse at 90% 90%, rgba(217, 70, 239, 0.08), transparent 30%);
+  background-size: 35px 35px, 35px 35px, 100% 100%, 100% 100%;
+  color: #0f172a;
+}
+
+/* Premium Light Mode Cyber-Neon Theme Overrides */
+html.light .bg-\[\#050b14\] {
+  background-color: #f5f3ec !important;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.01) 1px, transparent 1px),
+    radial-gradient(ellipse at 10% 10%, rgba(6, 182, 212, 0.08), transparent 30%),
+    radial-gradient(ellipse at 90% 90%, rgba(217, 70, 239, 0.08), transparent 30%) !important;
+  background-size: 35px 35px, 35px 35px, 100% 100%, 100% 100% !important;
+}
+
+html.light .bg-\[\#06111e\]\/85 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(6, 182, 212, 0.3) !important;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08), 0 0 25px rgba(6, 182, 212, 0.15) !important;
+}
+
+html.light .bg-\[\#06111e\] {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-white {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-950,
+html.light .bg-slate-900\/75,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-950\/85,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/60 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Glass card overrides for Light Mode */
+html.light .glass-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(6, 182, 212, 0.3) !important;
+  backdrop-filter: blur(16px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), 0 0 15px rgba(6, 182, 212, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  color: #0f172a !important;
+}
+html.light .glass-card:hover {
+  border-color: rgba(6, 182, 212, 0.6) !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12), 0 0 25px rgba(6, 182, 212, 0.25) !important;
+}
+
+html.light .glass-card-soft {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(6, 182, 212, 0.2) !important;
+  backdrop-filter: blur(10px) saturate(110%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(110%) !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06) !important;
+  color: #0f172a !important;
+}
+
+/* Sidebar and components in Light Mode */
+html.light .sidebar {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08), 0 0 20px rgba(6, 182, 212, 0.15) !important;
+  color: #0f172a !important;
+}
+
+html.light .sidebar-link {
+  background-color: rgba(241, 245, 249, 0.7) !important;
+  color: #334155 !important;
+  border-color: transparent !important;
+}
+html.light .sidebar-link:hover {
+  border-color: rgba(6, 182, 212, 0.4) !important;
+  background-color: #ffffff !important;
+  color: #0284c7 !important;
+}
+html.light .sidebar-link.active {
+  background-color: #ffffff !important;
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.15), inset 0 0 10px rgba(6, 182, 212, 0.05) !important;
+}
+html.light .sidebar-link .icon {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+  color: #0284c7 !important;
+}
+html.light .sidebar-link:hover .icon {
+  color: #ffffff !important;
+  background-color: #0284c7 !important;
+}
+
+/* Form fields in Light Mode */
+html.light .input-field {
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+  color: #0f172a !important;
+}
+html.light .input-field::placeholder {
+  color: #94a3b8 !important;
+}
+html.light .input-field:focus {
+  border-color: rgba(6, 182, 212, 0.6) !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.25) !important;
+}
+
+/* Card classes mapping overrides in light mode */
+html.light .rounded-3xl.border,
+html.light .rounded-\[32px\].border,
+html.light .border-slate-800,
+html.light .dark\:border-slate-800,
+html.light .border-slate-200,
+html.light .dark\:border-slate-700,
+html.light .border-slate-700 {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.light .rounded-3xl.border:not(.no-hover):hover,
+html.light .rounded-\[32px\].border:not(.no-hover):hover {
+  border-color: rgba(6, 182, 212, 0.5) !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.1), 0 0 20px rgba(6, 182, 212, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+/* Custom Neon Glow Utilities for Light Mode */
+html.light .neon-glow-cyan {
+  border: 1px solid rgba(6, 182, 212, 0.45) !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.15), inset 0 0 10px rgba(6, 182, 212, 0.02) !important;
+}
+html.light .neon-glow-cyan:hover {
+  border-color: rgba(6, 182, 212, 0.85) !important;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.3), inset 0 0 15px rgba(6, 182, 212, 0.08) !important;
+}
+
+html.light .neon-glow-orange {
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.15), inset 0 0 10px rgba(245, 158, 11, 0.02) !important;
+}
+html.light .neon-glow-orange:hover {
+  border-color: rgba(245, 158, 11, 0.85) !important;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), inset 0 0 15px rgba(245, 158, 11, 0.08) !important;
+}
+
+html.light .neon-glow-green {
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15), inset 0 0 10px rgba(16, 185, 129, 0.02) !important;
+}
+html.light .neon-glow-green:hover {
+  border-color: rgba(16, 185, 129, 0.85) !important;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.3), inset 0 0 15px rgba(16, 185, 129, 0.08) !important;
+}
+
+html.light .neon-glow-red {
+  border: 1px solid rgba(244, 63, 94, 0.45) !important;
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.15), inset 0 0 10px rgba(244, 63, 94, 0.02) !important;
+}
+html.light .neon-glow-red:hover {
+  border-color: rgba(244, 63, 94, 0.85) !important;
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.3), inset 0 0 15px rgba(244, 63, 94, 0.08) !important;
+}
+
+html.light .neon-glow-purple {
+  border: 1px solid rgba(139, 92, 246, 0.45) !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.15), inset 0 0 10px rgba(139, 92, 246, 0.02) !important;
+}
+html.light .neon-glow-purple:hover {
+  border-color: rgba(139, 92, 246, 0.85) !important;
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.3), inset 0 0 15px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* Dashboard KPI Card colorful neon borders in Light Mode matching user image */
+html.light .grid.gap-5 > :nth-child(1) {
+  border-color: rgba(6, 182, 212, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(6, 182, 212, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(2) {
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(16, 185, 129, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(3) {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(245, 158, 11, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(4) {
+  border-color: rgba(217, 70, 239, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(217, 70, 239, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(5) {
+  border-color: rgba(20, 184, 166, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(20, 184, 166, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(6) {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(245, 158, 11, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(7) {
+  border-color: rgba(6, 182, 212, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(6, 182, 212, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(8) {
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(59, 130, 246, 0.15) !important;
+}
+html.light .grid.gap-5 > :nth-child(9) {
+  border-color: rgba(139, 92, 246, 0.45) !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04), 0 0 15px rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Smooth Transitions & Hover States */
+html.light .grid.gap-5 > * {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+html.light .grid.gap-5 > :nth-child(1):hover {
+  border-color: rgba(6, 182, 212, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(6, 182, 212, 0.25), 0 0 25px rgba(6, 182, 212, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(2):hover {
+  border-color: rgba(16, 185, 129, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.25), 0 0 25px rgba(16, 185, 129, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(3):hover {
+  border-color: rgba(245, 158, 11, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(245, 158, 11, 0.25), 0 0 25px rgba(245, 158, 11, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(4):hover {
+  border-color: rgba(217, 70, 239, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(217, 70, 239, 0.25), 0 0 25px rgba(217, 70, 239, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(5):hover {
+  border-color: rgba(20, 184, 166, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(20, 184, 166, 0.25), 0 0 25px rgba(20, 184, 166, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(6):hover {
+  border-color: rgba(245, 158, 11, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(245, 158, 11, 0.25), 0 0 25px rgba(245, 158, 11, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(7):hover {
+  border-color: rgba(6, 182, 212, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(6, 182, 212, 0.25), 0 0 25px rgba(6, 182, 212, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(8):hover {
+  border-color: rgba(59, 130, 246, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.25), 0 0 25px rgba(59, 130, 246, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+html.light .grid.gap-5 > :nth-child(9):hover {
+  border-color: rgba(139, 92, 246, 0.85) !important;
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.25), 0 0 25px rgba(139, 92, 246, 0.35) !important;
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* Ensure high contrast readable texts for labels & values */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-900 {
+  color: #0f172a !important;
+}
+html.light .text-slate-800 {
+  color: #1e293b !important;
+}
+html.light .text-slate-700 {
+  color: #334155 !important;
+}
+html.light .text-slate-600 {
+  color: #475569 !important;
+}
+html.light .text-slate-500 {
+  color: #475569 !important;
+}
+html.light .text-slate-400 {
+  color: #64748b !important;
+}
+html.light .text-slate-300 {
+  color: #475569 !important;
+}
+html.light .label {
+  color: #334155 !important;
+}
+
+html.light .text-cyan-400 {
+  color: #0284c7 !important;
+}
+html.light .text-cyan-400\/80 {
+  color: #0369a1 !important;
+}
+html.light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+html.light .text-amber-400 {
+  color: #d97706 !important;
+}
+html.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+/* Fix text contrast in dark-gradient container blocks in light mode */
+html.light .bg-gradient-to-r.from-slate-900 h1,
+html.light .bg-gradient-to-r.from-slate-900 h2,
+html.light .bg-gradient-to-r.from-slate-900 h3,
+html.light .bg-gradient-to-r.from-slate-900 h4,
+html.light .bg-gradient-to-r.from-slate-900 p,
+html.light .bg-gradient-to-r.from-slate-900 span:not(.text-sky-400),
+html.light .bg-gradient-to-b.from-slate-900 h1,
+html.light .bg-gradient-to-b.from-slate-900 h2,
+html.light .bg-gradient-to-b.from-slate-900 h3,
+html.light .bg-gradient-to-b.from-slate-900 h4,
+html.light .bg-gradient-to-b.from-slate-900 p,
+html.light .bg-gradient-to-b.from-slate-900 span {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+html.light .bg-gradient-to-r.from-slate-900 p,
+html.light .bg-gradient-to-b.from-slate-900 p {
+  color: rgba(226, 232, 240, 0.9) !important;
+}
+html.light .bg-gradient-to-r.from-slate-900 .text-sky-400,
+html.light .bg-gradient-to-b.from-slate-900 .text-sky-400 {
+  color: #38bdf8 !important;
+}
+
+html.light .bg-slate-950\/60 {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light .border-slate-800\/40 {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Custom specific neon border color maps inspired by the user's dashboard image */
+html.light .border-cyan-500\/30 {
+  border-color: rgba(6, 182, 212, 0.4) !important;
+}
+
+html.light .shadow-\[0_0_40px_rgba\(0\,210\,255\,0\.15\)\] {
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08), 0 0 20px rgba(6, 182, 212, 0.15) !important;
+}
+
+
+/* Neon Glow Utility Classes */
+.neon-glow-cyan {
+  border: 1px solid rgba(0, 210, 255, 0.35) !important;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.12), inset 0 0 10px rgba(0, 210, 255, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.neon-glow-cyan:hover {
+  border-color: rgba(0, 210, 255, 0.8) !important;
+  box-shadow: 0 0 25px rgba(0, 210, 255, 0.35), inset 0 0 15px rgba(0, 210, 255, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.neon-glow-orange {
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.12), inset 0 0 10px rgba(245, 158, 11, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.neon-glow-orange:hover {
+  border-color: rgba(245, 158, 11, 0.8) !important;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.35), inset 0 0 15px rgba(245, 158, 11, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.neon-glow-green {
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.12), inset 0 0 10px rgba(16, 185, 129, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.neon-glow-green:hover {
+  border-color: rgba(16, 185, 129, 0.8) !important;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.35), inset 0 0 15px rgba(16, 185, 129, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.neon-glow-red {
+  border: 1px solid rgba(244, 63, 94, 0.35) !important;
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.12), inset 0 0 10px rgba(244, 63, 94, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.neon-glow-red:hover {
+  border-color: rgba(244, 63, 94, 0.8) !important;
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.35), inset 0 0 15px rgba(244, 63, 94, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.neon-glow-purple {
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.12), inset 0 0 10px rgba(139, 92, 246, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.neon-glow-purple:hover {
+  border-color: rgba(139, 92, 246, 0.8) !important;
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.35), inset 0 0 15px rgba(139, 92, 246, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+/* Base style mapping overrides in dark mode */
+html.dark * {
+  border-color: rgba(0, 210, 255, 0.15);
+}
+
+html.dark .border-white\/10 {
+  border-color: rgba(0, 210, 255, 0.2) !important;
+}
+
+html.dark .bg-slate-950\/85 {
+  background-color: rgba(4, 11, 20, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+  border-color: rgba(0, 210, 255, 0.25) !important;
+  box-shadow: 0 10px 40px rgba(2, 6, 23, 0.8), 0 0 20px rgba(0, 210, 255, 0.1) !important;
+}
+
+html.dark .bg-slate-900\/75 {
+  background-color: rgba(6, 17, 30, 0.75) !important;
+  backdrop-filter: blur(14px) saturate(110%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(110%) !important;
+  border-color: rgba(0, 210, 255, 0.2) !important;
+}
+
+html.dark .bg-slate-900 {
+  background-color: #06111e !important;
+}
+
+html.dark .bg-slate-950 {
+  background-color: #03080f !important;
+}
+
+html.dark .bg-slate-950\/80 {
+  background-color: rgba(3, 8, 15, 0.8) !important;
+}
+
+html.dark .bg-slate-900\/50 {
+  background-color: rgba(6, 17, 30, 0.5) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+html.dark .bg-slate-950\/70 {
+  background-color: rgba(3, 8, 15, 0.7) !important;
+}
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --accent: rgba(236, 72, 153, 0.12);
+}
+
+.glass-card {
+  background: linear-gradient(180deg, rgba(6, 19, 34, 0.8), rgba(4, 11, 20, 0.9));
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.7), 0 0 15px rgba(0, 210, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  border-radius: 18px;
+  padding: 1.25rem;
+  color: #e6eef6;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(0, 210, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.8), 0 0 25px rgba(0, 210, 255, 0.2);
+}
+
+.glass-card-soft {
+  background: linear-gradient(180deg, rgba(6, 19, 34, 0.6), rgba(4, 11, 20, 0.7));
+  border: 1px solid rgba(0, 210, 255, 0.15);
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  box-shadow: 0 6px 20px rgba(2, 6, 23, 0.6);
+  border-radius: 14px;
+  padding: 1rem;
+  color: #dbeeff;
+}
+
+.sidebar {
+  @apply hidden xl:flex flex-col gap-6 rounded-3xl border border-white/10 bg-slate-950/85 p-6 text-slate-200 shadow-2xl shadow-slate-950/20 backdrop-blur-xl;
+}
+
+.sidebar-link {
+  @apply inline-flex w-full items-center gap-3 rounded-3xl border border-transparent bg-slate-900/70 px-4 py-3 text-sm text-slate-300 transition-all duration-300 hover:border-sky-400/40 hover:bg-slate-900/95 hover:text-white;
+}
+
+.sidebar-link.active {
+  @apply border-sky-400 bg-slate-900 text-white shadow-inner shadow-sky-500/20;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.15), inset 0 0 10px rgba(0, 210, 255, 0.05);
+}
+
+.sidebar-link .icon {
+  @apply inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-sky-300 transition-all duration-300;
+}
+
+.sidebar-link:hover .icon {
+  @apply text-white bg-sky-500 shadow-md shadow-sky-500/30;
+}
+
+.sidebar .rounded-3xl {
+  @apply rounded-[28px];
+}
+
+.muted {
+  color: #93a3b8;
+}
+
+.rounded-xl-ghost {
+  border-radius: 16px;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-sky-500 to-indigo-600 text-white px-5 py-2.5 rounded-2xl hover:from-sky-400 hover:to-indigo-500 transition-all duration-300 font-semibold shadow-lg shadow-sky-500/25 active:scale-95;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.4), 0 5px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+  @apply bg-slate-900/80 text-gray-200 px-4 py-2 rounded-xl hover:bg-slate-800 hover:text-white transition-all duration-300 border border-slate-700/60;
+}
+
+.btn-danger {
+  @apply bg-gradient-to-r from-red-600 to-rose-700 text-white px-4 py-2 rounded-xl hover:from-red-500 hover:to-rose-600 transition-all duration-300 shadow-lg shadow-rose-500/25;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.input-field {
+  @apply w-full px-4 py-3 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-500/50 bg-slate-950/70 text-white transition-all duration-300;
+}
+
+.input-field:focus {
+  border-color: rgba(0, 210, 255, 0.6) !important;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.25) !important;
+}
+
+.label {
+  @apply block text-sm font-semibold text-slate-300 mb-2;
+}
+
+.badge {
+  @apply inline-block px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase;
+}
+
+.badge-success {
+  @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+}
+
+.badge-warning {
+  @apply bg-amber-500/10 text-amber-400 border border-amber-500/20;
+}
+
+.badge-danger {
+  @apply bg-rose-500/10 text-rose-400 border border-rose-500/20;
+}
+
+.badge-info {
+  @apply bg-sky-500/10 text-sky-400 border border-sky-500/20;
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.25; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 6s infinite ease-in-out;
+}
+
+/* Global Dark Mode Overrides for Client & Technician Portals */
+html.dark .border-slate-800,
+html.dark .dark\:border-slate-800,
+html.dark .border-slate-200,
+html.dark .dark\:border-slate-700,
+html.dark .border-slate-700 {
+  border-color: rgba(0, 210, 255, 0.2) !important;
+}
+
+html.dark .bg-slate-900\/60 {
+  background-color: rgba(6, 17, 30, 0.6) !important;
+  backdrop-filter: blur(14px) saturate(110%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(110%) !important;
+  border-color: rgba(0, 210, 255, 0.2) !important;
+}
+
+html.dark .bg-white {
+  background-color: #06111e !important;
+}
+
+html.dark .bg-slate-50 {
+  background-color: #03080f !important;
+}
+
+html.dark .bg-slate-50\/50 {
+  background-color: rgba(3, 8, 15, 0.5) !important;
+}
+
+html.dark .bg-slate-50\/30 {
+  background-color: rgba(3, 8, 15, 0.3) !important;
+}
+
+html.dark .text-slate-900 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-800 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #64748b !important;
+}
+
+/* Premium Card hover properties inside dashboard layouts */
+html.dark .rounded-3xl.border,
+html.dark .rounded-\[32px\].border {
+  border-color: rgba(0, 210, 255, 0.25) !important;
+  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.7), 0 0 15px rgba(0, 210, 255, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.01) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark .rounded-3xl.border:not(.no-hover):hover,
+html.dark .rounded-\[32px\].border:not(.no-hover):hover {
+  border-color: rgba(0, 210, 255, 0.6) !important;
+  box-shadow: 0 8px 32px rgba(2, 6, 23, 0.85), 0 0 25px rgba(0, 210, 255, 0.18) !important;
+  transform: translateY(-2px);
+}
+
+/* Gaya List Baru - Premium List Item with Hover Background, Text Color Change, Slide, and Transition */
+.gaya-list-baru {
+  cursor: pointer !important;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.gaya-list-baru:hover {
+  transform: translateX(4px) !important;
+}
+
+/* Light mode overrides for Gaya List Baru */
+html.light .gaya-list-baru:hover {
+  background-color: rgba(6, 182, 212, 0.08) !important;
+  color: #0891b2 !important; /* changes text color to brand cyan */
+}
+
+/* Dark mode overrides for Gaya List Baru */
+html.dark .gaya-list-baru:hover {
+  background-color: rgba(0, 210, 255, 0.1) !important;
+  color: #00d2ff !important; /* changes text color to glowing cyan */
+}
+
+/* Ensure cursor pointer on all buttons, interactive elements, selects and dropdown options */
+button, 
+a, 
+select, 
+option,
+[role="button"],
+input[type="submit"],
+input[type="button"] {
+  cursor: pointer !important;
+}
+
+

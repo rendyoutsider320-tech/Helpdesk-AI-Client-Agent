@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  zammad-db:
+    image: postgres:15-alpine
+    container_name: zammad-db
+    restart: always
+    environment:
+      - POSTGRES_USER=zammad
+      - POSTGRES_PASSWORD=zammad_password
+      - POSTGRES_DB=zammad_production
+    volumes:
+      - zammad_db_data:/var/lib/postgresql/data
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+  zammad-elasticsearch:
+    image: elasticsearch:7.17.10
+    container_name: zammad-elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - zammad_es_data:/usr/share/elasticsearch/data
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+  zammad-memcached:
+    image: memcached:1.6-alpine
+    container_name: zammad-memcached
+    restart: always
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+  zammad-redis:
+    image: redis:7-alpine
+    container_name: zammad-redis
+    restart: always
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+  zammad-railsserver:
+    image: zammad/zammad:6.1.0
+    container_name: zammad-railsserver
+    restart: always
+    command: [ "sh", "-c", "bundle exec rails server -b 0.0.0.0 -p 8080" ]
+    environment:
+      - ZAMMAD_READY_FILE=/etc/passwd
+      - ZAMMAD_DB_ADAPTER=postgresql
+      - ZAMMAD_DB_HOST=zammad-db
+      - ZAMMAD_DB_PORT=5432
+      - ZAMMAD_DB_USER=zammad
+      - ZAMMAD_DB_PASS=zammad_password
+      - ZAMMAD_DB=zammad_production
+      - ELASTICSEARCH_URL=http://zammad-elasticsearch:9200
+      - MEMCACHE_SERVERS=zammad-memcached:11211
+      - REDIS_URL=redis://zammad-redis:6379
+      - WEB_CONCURRENCY=0
+    ports:
+      - "8081:8080"
+    depends_on:
+      - zammad-db
+      - zammad-elasticsearch
+      - zammad-redis
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+  zammad-worker:
+    image: zammad/zammad:6.1.0
+    container_name: zammad-worker
+    restart: always
+    command: [ "sh", "-c", "bundle exec script/background-worker.rb start; sleep 10d" ]
+    environment:
+      - ZAMMAD_READY_FILE=/etc/passwd
+      - ZAMMAD_DB_ADAPTER=postgresql
+      - ZAMMAD_DB_HOST=zammad-db
+      - ZAMMAD_DB_PORT=5432
+      - ZAMMAD_DB_USER=zammad
+      - ZAMMAD_DB_PASS=zammad_password
+      - ZAMMAD_DB=zammad_production
+      - ELASTICSEARCH_URL=http://zammad-elasticsearch:9200
+      - MEMCACHE_SERVERS=zammad-memcached:11211
+      - REDIS_URL=redis://zammad-redis:6379
+    depends_on:
+      - zammad-railsserver
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+  zammad-websocket:
+    image: zammad/zammad:6.1.0
+    container_name: zammad-websocket
+    restart: always
+    command: [ "sh", "-c", "bundle exec script/websocket-server.rb start; sleep 10d" ]
+    environment:
+      - ZAMMAD_READY_FILE=/etc/passwd
+      - ZAMMAD_DB_ADAPTER=postgresql
+      - ZAMMAD_DB_HOST=zammad-db
+      - ZAMMAD_DB_PORT=5432
+      - ZAMMAD_DB_USER=zammad
+      - ZAMMAD_DB_PASS=zammad_password
+      - ZAMMAD_DB=zammad_production
+      - REDIS_URL=redis://zammad-redis:6379
+    depends_on:
+      - zammad-railsserver
+    networks:
+      - helpdesk-ai_helpdesk-network
+
+volumes:
+  zammad_db_data:
+  zammad_es_data:
+
+networks:
+  helpdesk-ai_helpdesk-network:
+    external: true

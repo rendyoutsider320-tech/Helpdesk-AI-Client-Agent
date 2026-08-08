@@ -1,0 +1,563 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - helpdesk-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - helpdesk-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant Vector Database (for AI/RAG)
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - helpdesk-network
+    environment:
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "</dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - helpdesk-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /etc/prometheus/prometheus.yml
+        global:
+          scrape_interval: 15s
+          evaluation_interval: 15s
+
+        scrape_configs:
+          - job_name: 'prometheus'
+            static_configs:
+              - targets: ['localhost:9090']
+
+          - job_name: 'api'
+            static_configs:
+              - targets: ['api:8090']
+            metrics_path: '/metrics'
+
+          - job_name: 'postgres'
+            static_configs:
+              - targets: ['postgres:5432']
+
+          - job_name: 'redis'
+            static_configs:
+              - targets: ['redis:6379']
+
+          - job_name: 'blackbox'
+            metrics_path: /probe
+            params:
+              module: [http_2xx]
+            static_configs:
+              - targets:
+                - https://cos.sams.id/
+                - https://sales.sams.id/
+                - https://absensi.sams.id/
+                - https://karyawan.sams.id/
+            relabel_configs:
+              - source_labels: [__address__]
+                target_label: __param_target
+              - source_labels: [__param_target]
+                target_label: instance
+              - target_label: __address__
+                replacement: blackbox-exporter:9115
+        EOF
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Blackbox Exporter for URL/HTTP probe monitoring
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    ports:
+      - "9115:9115"
+    networks:
+      - helpdesk-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /etc/blackbox_exporter
+        cat <<'EOF' > /etc/blackbox_exporter/config.yml
+        modules:
+          http_2xx:
+            prober: http
+            timeout: 5s
+            http:
+              valid_status_codes: []
+              method: GET
+              preferred_ip_protocol: ip4
+              tls_config:
+                insecure_skip_verify: true
+        EOF
+        exec /bin/blackbox_exporter --config.file=/etc/blackbox_exporter/config.yml
+    restart: unless-stopped
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3010:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: "alexanderzobnin-zabbix-app"
+      ZABBIX_URL: ${ZABBIX_URL}
+      ZABBIX_USER: ${ZABBIX_USER}
+      ZABBIX_PASSWORD: ${ZABBIX_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - helpdesk-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Loki Log Aggregation
+  loki:
+    image: grafana/loki:2.9.8
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    networks:
+      - helpdesk-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /etc/loki/local-config.yaml
+        auth_enabled: false
+
+        server:
+          http_listen_port: 3100
+
+        common:
+          path_prefix: /loki
+          replication_factor: 1
+          ring:
+            instance_addr: 127.0.0.1
+            kvstore:
+              store: inmemory
+
+        schema_config:
+          configs:
+            - from: 2024-01-01
+              store: tsdb
+              object_store: filesystem
+              schema: v13
+              index:
+                prefix: index_
+                period: 24h
+
+        storage_config:
+          filesystem:
+            directory: /loki/chunks
+
+        limits_config:
+          allow_structured_metadata: false
+        EOF
+        exec /usr/bin/loki -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/metrics || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Promtail Log Shipper
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - /var/log:/var/log
+    networks:
+      - helpdesk-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /etc/promtail/config.yml
+        clients:
+          - url: http://loki:3100/loki/api/v1/push
+
+        positions:
+          filename: /tmp/positions.yaml
+
+        scrape_configs:
+          - job_name: system
+            static_configs:
+              - targets:
+                  - localhost
+                labels:
+                  job: system
+                  __path__: /var/log/**
+        EOF
+        exec /usr/bin/promtail -config.file=/etc/promtail/config.yml
+    healthcheck:
+      test: ["CMD", "promtail", "-version"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # NATS Message Broker (for controller -> agent pub/sub)
+  nats:
+    image: nats:alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - helpdesk-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /etc/nats
+        cat <<'EOF' > /etc/nats/nats.conf
+        port: 4222
+        http_port: 8222
+
+        server_name: helpdesk-nats
+
+        listen: 0.0.0.0:4222
+
+        authorization {
+          users = [
+            {user: "pb-controller", password: "controller-pass"},
+            {user: "agent-client", password: "agent-pass"}
+          ]
+        }
+        EOF
+        exec nats-server -c /etc/nats/nats.conf
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/minio_data
+    command: server /minio_data --console-address ":9001"
+    networks:
+      - helpdesk-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Go API Server
+  api:
+    image: helpdesk-api:latest
+    ports:
+      - "8088:8090"
+      - "8085:8085"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SERVER_PORT: ${SERVER_PORT}
+      SERVER_ENV: ${SERVER_ENV}
+      JWT_SECRET: ${JWT_SECRET}
+      OLLAMA_URL: ${OLLAMA_URL}
+      NATS_USER: ${NATS_USER}
+      NATS_PASSWORD: ${NATS_PASSWORD}
+      NATS_URL: nats://pb-controller:controller-pass@nats:4222
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      LLM_MODEL: ${LLM_MODEL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_BASE: ${OPENAI_API_BASE}
+      OPENAI_EMBEDDINGS_MODEL: ${OPENAI_EMBEDDINGS_MODEL}
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION}
+      PROMETHEUS_URL: ${PROMETHEUS_URL}
+      ZAMMAD_URL: ${ZAMMAD_URL}
+      ZAMMAD_TOKEN: ${ZAMMAD_TOKEN}
+      MINIO_HOST: ${MINIO_HOST}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      SERVER_URL: ${SERVER_URL}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:$$SERVER_PORT/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/root/uploads
+    networks:
+      - helpdesk-network
+
+  # Ollama AI Model Service
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11435:11435"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - helpdesk-network
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11435
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Next.js Frontend
+  frontend:
+    image: helpdesk-frontend:latest
+    environment:
+      NEXT_PUBLIC_API_URL: /api/v1
+      API_URL: http://api:8090/api/v1
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - helpdesk-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3002/ || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+      - "3002:443"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - helpdesk-network
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /etc/nginx/nginx.conf
+        events {
+            worker_connections 1024;
+        }
+
+        http {
+            upstream api_backend {
+                server api:8090;
+            }
+
+            upstream frontend_backend {
+                server frontend:3002;
+            }
+
+            upstream grafana_backend {
+                server grafana:3000;
+            }
+
+            upstream prometheus_backend {
+                server prometheus:9090;
+            }
+
+            upstream minio_backend {
+                server minio:9001;
+            }
+
+            server {
+                listen 80;
+                listen 443 ssl;
+                server_name localhost;
+                client_max_body_size 100M;
+
+                ssl_certificate /etc/nginx/certs/nginx.crt;
+                ssl_certificate_key /etc/nginx/certs/nginx.key;
+                ssl_protocols TLSv1.2 TLSv1.3;
+                ssl_ciphers HIGH:!aNULL:!MD5;
+
+                # Redirect HTTP requests on the HTTPS port to HTTPS
+                error_page 497 https://$$host:3002$$request_uri;
+
+                # Frontend (root path)
+                location / {
+                    proxy_pass http://frontend_backend;
+                    proxy_set_header Host $$host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $$scheme;
+                    
+                    # WebSocket support for Next.js HMR
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $$http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                }
+
+                # API routes
+                location /api/ {
+                    proxy_pass http://api_backend;
+                    proxy_set_header Host $$host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $$scheme;
+                    
+                    # Timeout settings for AI processing
+                    proxy_read_timeout 300s;
+                    proxy_connect_timeout 300s;
+                    proxy_send_timeout 300s;
+
+                    # WebSocket support
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $$http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                }
+
+                # WebSocket routes
+                location /ws/ {
+                    proxy_pass http://api_backend;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $$http_upgrade;
+                    proxy_set_header Connection "Upgrade";
+                    proxy_set_header Host $$host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                    proxy_read_timeout 86400;
+                }
+
+                # Health check
+                location /health {
+                    proxy_pass http://api_backend;
+                    proxy_set_header Host $$host;
+                }
+
+                # Grafana dashboard
+                location /grafana/ {
+                    proxy_pass http://grafana_backend/;
+                    proxy_set_header Host $$host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $$scheme;
+                }
+
+                # Prometheus
+                location /prometheus/ {
+                    proxy_pass http://prometheus_backend/;
+                    proxy_set_header Host $$host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                }
+
+                # MinIO Console
+                location /minio/ {
+                    proxy_pass http://minio_backend/;
+                    proxy_set_header Host $$host;
+                    proxy_set_header X-Real-IP $$remote_addr;
+                    proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                }
+            }
+        }
+        EOF
+        exec nginx -g "daemon off;"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  minio_data:
+  ollama_data:
+
+networks:
+  helpdesk-network:
+    driver: bridge

@@ -1,0 +1,12 @@
+services:
+  # Local build override for Go API Server
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+
+  # Local build override for Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile

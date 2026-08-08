@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+# Set permissions
+chmod 755 /opt/helpdesk-agent/agent-client
+chmod 644 /opt/helpdesk-agent/.env
+chmod 644 /etc/systemd/system/helpdesk-agent.service
+
+# Reload systemd and enable service for auto-start on boot
+systemctl daemon-reload || true
+systemctl enable helpdesk-agent.service || true
+systemctl restart helpdesk-agent.service || true
+
+echo "=========================================================="
+echo " Helpdesk AI Client Agent Service successfully installed! "
+echo " Status: Active & Enabled on boot.                       "
+echo "=========================================================="
+
+exit 0

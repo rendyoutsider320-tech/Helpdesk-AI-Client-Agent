@@ -15,11 +15,15 @@ var globalConn *nats.Conn
 func InitNATS() error {
 	url := os.Getenv("NATS_URL")
 	if url == "" {
-		url = nats.DefaultURL
+		url = "nats://10.20.0.46:4222"
 	}
 
 	user := os.Getenv("NATS_USER")
 	pass := os.Getenv("NATS_PASSWORD")
+	if user == "" && pass == "" {
+		user = "pb-controller"
+		pass = "controller-pass"
+	}
 
 	var opts []nats.Option
 	if user != "" && pass != "" {

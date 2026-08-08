@@ -30,7 +30,7 @@ import (
 	"github.com/helpdesk-ai/client-agent/pkg/messaging"
 )
 
-const defaultControllerEnrollURL = "http://localhost:8085/enroll"
+const defaultControllerEnrollURL = "http://10.20.0.46:8085/enroll"
 
 func loadEnvFile() {
 	exePath, err := os.Executable()

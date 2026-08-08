@@ -64,6 +64,15 @@ func getWindowsRustDesk() (string, string) {
 			filepath.Join(programData, "RustDesk", "config", "RustDesk2.toml"),
 			filepath.Join(programData, "RustDesk", "config", "RustDesk.toml"),
 			systemDrive + `\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+			systemDrive + `\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		}
+
+		// Dynamically scan all Windows user profiles (C:\Users\*\AppData\...)
+		if userMatches, err := filepath.Glob(systemDrive + `\Users\*\AppData\Roaming\RustDesk\config\RustDesk*.toml`); err == nil {
+			candidatePaths = append(candidatePaths, userMatches...)
+		}
+		if userLocalMatches, err := filepath.Glob(systemDrive + `\Users\*\AppData\Local\RustDesk\config\RustDesk*.toml`); err == nil {
+			candidatePaths = append(candidatePaths, userLocalMatches...)
 		}
 
 		for _, p := range candidatePaths {
@@ -87,7 +96,6 @@ func getWindowsRustDesk() (string, string) {
 	if errProc == nil && strings.TrimSpace(string(outProc)) != "" {
 		status = "online"
 	} else {
-		// If ID is found, set status to installed/offline
 		status = "installed"
 	}
 
@@ -106,7 +114,7 @@ func getLinuxRustDesk() (string, string) {
 		}
 	}
 
-	// 2. Fallback: Search Linux TOML config files
+	// 2. Fallback: Search Linux TOML config files across all users and system paths
 	if id == "" {
 		homeDir, _ := os.UserHomeDir()
 		candidatePaths := []string{
@@ -114,6 +122,10 @@ func getLinuxRustDesk() (string, string) {
 			filepath.Join(homeDir, ".config", "rustdesk", "RustDesk.toml"),
 			"/etc/rustdesk/RustDesk2.toml",
 			"/root/.config/rustdesk/RustDesk2.toml",
+		}
+
+		if linuxMatches, err := filepath.Glob("/home/*/.config/rustdesk/RustDesk*.toml"); err == nil {
+			candidatePaths = append(candidatePaths, linuxMatches...)
 		}
 
 		for _, p := range candidatePaths {

@@ -300,6 +300,62 @@ func isVirtualAdapter(name, desc string) bool {
 }
 
 func fillWindowsNetwork(hw *HardwareInfo) {
+	// 1. Fast Native Go Interface Inspection (0ms latency, zero delay for Wi-Fi & LAN IPs)
+	ifaces, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+
+			nameLower := strings.ToLower(iface.Name)
+			if isVirtualAdapter(nameLower, "") {
+				continue
+			}
+
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+
+			for _, addr := range addrs {
+				ipnet, ok := addr.(*net.IPNet)
+				if !ok || ipnet.IP.IsLoopback() {
+					continue
+				}
+
+				ip4 := ipnet.IP.To4()
+				if ip4 == nil {
+					continue
+				}
+
+				ipStr := ip4.String()
+				if strings.HasPrefix(ipStr, "169.254.") || strings.HasPrefix(ipStr, "127.") {
+					continue
+				}
+
+				if strings.Contains(nameLower, "wi-fi") || strings.Contains(nameLower, "wifi") || strings.Contains(nameLower, "wlan") || strings.Contains(nameLower, "wireless") {
+					if hw.IPWifi == "" {
+						hw.IPWifi = ipStr
+					}
+				} else {
+					if hw.IPLan == "" {
+						hw.IPLan = ipStr
+					}
+				}
+
+				if hw.IPAddress == "" {
+					hw.IPAddress = ipStr
+					hw.MACAddress = iface.HardwareAddr.String()
+				}
+			}
+		}
+	}
+
+	if hw.IPAddress != "" {
+		return
+	}
+
 	psCmd := `$result = @{ ip_lan = ""; ip_wifi = ""; ip_address = ""; mac_address = ""; dns_servers = "" }; ` +
 		`$configs = Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.IPAddress -ne $null -and $_.IPEnabled -eq $true }; ` +
 		`$dns = ""; ` +

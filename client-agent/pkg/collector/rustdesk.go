@@ -38,12 +38,32 @@ func GetRustDeskInfo() RustDeskInfo {
 func getWindowsRustDesk() (string, string) {
 	id := ""
 
-	// 1. Try running CLI command rustdesk --get-id
-	out, err := exec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "rustdesk --get-id").Output()
-	if err == nil {
-		cleanOut := strings.TrimSpace(string(out))
-		if cleanOut != "" && !strings.Contains(cleanOut, "is not recognized") && !strings.Contains(cleanOut, "Error") {
-			id = cleanOut
+	programFiles := os.Getenv("ProgramFiles")
+	programFilesX86 := os.Getenv("ProgramFiles(x86)")
+	systemDrive := os.Getenv("SystemDrive")
+	if systemDrive == "" {
+		systemDrive = "C:"
+	}
+
+	// 1. Try running CLI command rustdesk.exe --get-id directly from known install paths
+	rustdeskExes := []string{
+		filepath.Join(programFiles, "RustDesk", "rustdesk.exe"),
+		filepath.Join(programFilesX86, "RustDesk", "rustdesk.exe"),
+		systemDrive + `\Program Files\RustDesk\rustdesk.exe`,
+		systemDrive + `\Program Files (x86)\RustDesk\rustdesk.exe`,
+		"rustdesk.exe",
+	}
+
+	for _, exe := range rustdeskExes {
+		if exe != "" && (fileExists(exe) || exe == "rustdesk.exe") {
+			out, err := exec.Command(exe, "--get-id").Output()
+			if err == nil {
+				cleanOut := strings.TrimSpace(string(out))
+				if cleanOut != "" && !strings.Contains(cleanOut, "is not recognized") && !strings.Contains(cleanOut, "Error") && len(cleanOut) >= 6 {
+					id = cleanOut
+					break
+				}
+			}
 		}
 	}
 
@@ -52,10 +72,6 @@ func getWindowsRustDesk() (string, string) {
 		appData := os.Getenv("APPDATA")
 		localAppData := os.Getenv("LOCALAPPDATA")
 		programData := os.Getenv("ProgramData")
-		systemDrive := os.Getenv("SystemDrive")
-		if systemDrive == "" {
-			systemDrive = "C:"
-		}
 
 		var candidatePaths []string
 

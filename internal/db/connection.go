@@ -62,7 +62,7 @@ func InitDB() error {
 		log.Printf("Warning: Partition setup encountered issues: %v", err)
 	}
 
-	if err := DB.AutoMigrate(&RefreshToken{}, &BlacklistedToken{}, &Ticket{}, &TechnicianPresence{}, &Asset{}, &SoftwareInventory{}, &USBInventory{}, &SystemEventLog{}, &MonitoredAppStatus{}); err != nil {
+	if err := DB.AutoMigrate(&Device{}, &AgentRegistry{}, &RefreshToken{}, &BlacklistedToken{}, &Ticket{}, &TechnicianPresence{}, &Asset{}, &SoftwareInventory{}, &USBInventory{}, &SystemEventLog{}, &MonitoredAppStatus{}); err != nil {
 		log.Printf("Warning: Failed to auto-migrate security tables: %v", err)
 	}
 

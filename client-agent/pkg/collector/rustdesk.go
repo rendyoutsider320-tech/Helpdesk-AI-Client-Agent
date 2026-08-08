@@ -2,6 +2,7 @@ package collector
 
 import (
 	"bufio"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"

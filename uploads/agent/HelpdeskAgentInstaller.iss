@@ -24,7 +24,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 ; Salin executable agent-client.exe dan file konfigurasi .env (opsional)
 Source: "agent-client.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: ".env"; DestDir: "{app}"; Flags: ignoreversion; Tasks: ; OnlyIfDesirable: ; Check: FileExists(ExpandConstant('{src}\.env'))
+Source: ".env"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Run]
 ; 1. Hapus service lama jika ada (agar instalasi bersih)

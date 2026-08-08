@@ -57,23 +57,34 @@ func getWindowsRustDesk() (string, string) {
 			systemDrive = "C:"
 		}
 
-		candidatePaths := []string{
-			filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"),
-			filepath.Join(appData, "RustDesk", "config", "RustDesk.toml"),
-			filepath.Join(localAppData, "RustDesk", "config", "RustDesk2.toml"),
-			filepath.Join(programData, "RustDesk", "config", "RustDesk2.toml"),
-			filepath.Join(programData, "RustDesk", "config", "RustDesk.toml"),
-			systemDrive + `\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
-			systemDrive + `\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
-		}
+		var candidatePaths []string
 
-		// Dynamically scan all Windows user profiles (C:\Users\*\AppData\...)
+		// 1. Prioritize User Profile configs (C:\Users\*\AppData\...) -> GUI RustDesk ID shown in application
 		if userMatches, err := filepath.Glob(systemDrive + `\Users\*\AppData\Roaming\RustDesk\config\RustDesk*.toml`); err == nil {
 			candidatePaths = append(candidatePaths, userMatches...)
 		}
 		if userLocalMatches, err := filepath.Glob(systemDrive + `\Users\*\AppData\Local\RustDesk\config\RustDesk*.toml`); err == nil {
 			candidatePaths = append(candidatePaths, userLocalMatches...)
 		}
+		if appData != "" {
+			candidatePaths = append(candidatePaths,
+				filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"),
+				filepath.Join(appData, "RustDesk", "config", "RustDesk.toml"),
+			)
+		}
+		if localAppData != "" {
+			candidatePaths = append(candidatePaths,
+				filepath.Join(localAppData, "RustDesk", "config", "RustDesk2.toml"),
+			)
+		}
+
+		// 2. System Service Profile fallbacks
+		candidatePaths = append(candidatePaths,
+			filepath.Join(programData, "RustDesk", "config", "RustDesk2.toml"),
+			filepath.Join(programData, "RustDesk", "config", "RustDesk.toml"),
+			systemDrive+`\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+			systemDrive+`\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+		)
 
 		for _, p := range candidatePaths {
 			if fileExists(p) {

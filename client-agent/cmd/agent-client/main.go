@@ -425,26 +425,30 @@ func loadOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {
 }
 
 func getLocalIP() string {
-	target := "10.20.0.46:4222"
-	if natsURL := os.Getenv("NATS_URL"); natsURL != "" {
-		trimmed := strings.TrimPrefix(natsURL, "nats://")
-		if idx := strings.Index(trimmed, "@"); idx != -1 {
-			trimmed = trimmed[idx+1:]
-		}
-		if trimmed != "" {
-			target = trimmed
-		}
-	}
-
-	conn, err := net.Dial("udp", target)
+	// Fast interface inspection (0ms latency, works instantly on Windows & Linux)
+	ifaces, err := net.Interfaces()
 	if err == nil {
-		defer conn.Close()
-		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok && localAddr.IP != nil {
-			return localAddr.IP.String()
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagUp != 0 && iface.Flags&net.FlagLoopback == 0 {
+				addrs, err := iface.Addrs()
+				if err == nil {
+					for _, addr := range addrs {
+						if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+							if ip4 := ipnet.IP.To4(); ip4 != nil {
+								// Prioritize LAN IPs (10.x, 192.168.x, 172.16-31.x)
+								if ip4[0] == 10 || (ip4[0] == 192 && ip4[1] == 168) || (ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) {
+									return ip4.String()
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
-	conn, err = net.Dial("udp", "8.8.8.8:80")
+	// Fallback UDP dial directly to IP address (no DNS lookup delay)
+	conn, err := net.Dial("udp", "10.20.0.46:4222")
 	if err == nil {
 		defer conn.Close()
 		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok && localAddr.IP != nil {

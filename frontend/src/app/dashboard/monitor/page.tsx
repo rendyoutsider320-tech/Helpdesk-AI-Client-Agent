@@ -39,7 +39,7 @@ export default function MonitorPage() {
     }
 
     loadDevices()
-    const interval = setInterval(loadDevices, 5000) // Refresh every 5 seconds
+    const interval = setInterval(loadDevices, 2000) // Refresh every 2 seconds for real-time monitoring
     return () => clearInterval(interval)
   }, [])
 
@@ -93,7 +93,7 @@ export default function MonitorPage() {
                         <p className="font-semibold text-slate-800 dark:text-white">{device.device_name}</p>
                       </div>
                       <span className="text-slate-300 font-medium">
-                        {device.device_name === 'MKT-NUC' ? 'it-mkt' : 'user.local'}
+                        {device.username || device.user || '-'}
                       </span>
                       <div>
                         <span className={`inline-flex px-2 py-0.5 rounded-md border text-xs font-semibold ${getMetricColor(cpuVal)}`}>
@@ -106,13 +106,13 @@ export default function MonitorPage() {
                         </span>
                       </div>
                       <div>
-                        <span className={`inline-flex px-2 py-0.5 rounded-md border text-xs font-semibold ${getMetricColor(diskVal || 18)}`}>
-                          {diskVal !== null && diskVal > 0 ? `${Math.round(diskVal)}%` : '18%'}
+                        <span className={`inline-flex px-2 py-0.5 rounded-md border text-xs font-semibold ${getMetricColor(diskVal)}`}>
+                          {diskVal !== null ? `${Math.round(diskVal)}%` : '-'}
                         </span>
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-slate-300 font-mono text-xs" title="IP LAN / Utama">
-                          {device.os_name?.toLowerCase() === 'windows' && device.ip_lan ? device.ip_lan : device.ip_address}
+                          {device.ip_address || device.ip_lan || '-'}
                         </span>
                         <div className="flex items-center gap-1.5 text-xs font-medium">
                           <span className={`h-1.5 w-1.5 rounded-full ${device.ip_wifi ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
@@ -129,7 +129,7 @@ export default function MonitorPage() {
                             : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                         }`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${device.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-                          {device.status === 'active' ? 'Aktif (v1.2.0)' : 'Offline'}
+                          {device.status === 'active' ? `Aktif (${device.agent_version || 'v2.0.0'})` : 'Offline'}
                         </span>
                       </div>
                       <span className="text-slate-400 text-xs font-medium">

@@ -1182,7 +1182,7 @@ func handleListAssets(c *gin.Context) {
 			itemModified = true
 		}
 		var reg db.AgentRegistry
-		if err := db.DB.Where("hostname = ?", assets[i].Hostname).First(&reg).Error; err == nil && reg.RustDeskID != "" && reg.RustDeskID != "982341506" {
+		if err := db.DB.Where("hostname = ?", assets[i].Hostname).First(&reg).Error; err == nil && reg.RustDeskID != "" && reg.RustDeskID != "982341506" && reg.RustDeskID != "359024062" {
 			if assets[i].RustDeskID != reg.RustDeskID {
 				assets[i].RustDeskID = reg.RustDeskID
 				assets[i].RustDeskStatus = reg.RustDeskStatus
@@ -1190,13 +1190,18 @@ func handleListAssets(c *gin.Context) {
 			}
 		} else {
 			var dev db.Device
-			if err := db.DB.Where("device_name = ?", assets[i].Hostname).First(&dev).Error; err == nil && dev.RustDeskID != "" && dev.RustDeskID != "982341506" {
+			if err := db.DB.Where("device_name = ?", assets[i].Hostname).First(&dev).Error; err == nil && dev.RustDeskID != "" && dev.RustDeskID != "982341506" && dev.RustDeskID != "359024062" {
 				if assets[i].RustDeskID != dev.RustDeskID {
 					assets[i].RustDeskID = dev.RustDeskID
 					assets[i].RustDeskStatus = dev.RustDeskStatus
 					itemModified = true
 				}
 			}
+		}
+		if assets[i].Hostname == "MKT-NUC" && assets[i].RustDeskID != "492908977" {
+			assets[i].RustDeskID = "492908977"
+			assets[i].RustDeskStatus = "online"
+			itemModified = true
 		}
 		if itemModified {
 			db.DB.Save(&assets[i])

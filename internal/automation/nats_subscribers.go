@@ -55,7 +55,7 @@ func StartSubscribers() {
 		if data.IPAddress != "" && data.IPAddress != "auto" {
 			updates["ip_address"] = data.IPAddress
 		}
-		if data.RustDeskID != "" {
+		if data.RustDeskID != "" && data.RustDeskID != "359024062" && data.RustDeskID != "982341506" {
 			updates["rustdesk_id"] = data.RustDeskID
 		}
 		if data.RustDeskStatus != "" {
@@ -90,7 +90,7 @@ func StartSubscribers() {
 			if ip != "127.0.0.1" {
 				deviceUpdates["ip_address"] = ip
 			}
-			if data.RustDeskID != "" {
+			if data.RustDeskID != "" && data.RustDeskID != "359024062" && data.RustDeskID != "982341506" {
 				deviceUpdates["rustdesk_id"] = data.RustDeskID
 			}
 			if data.RustDeskStatus != "" {
@@ -100,7 +100,7 @@ func StartSubscribers() {
 		}
 
 		// Also update matching asset
-		if data.RustDeskID != "" {
+		if data.RustDeskID != "" && data.RustDeskID != "359024062" && data.RustDeskID != "982341506" {
 			db.DB.Model(&db.Asset{}).Where("hostname = ?", data.Hostname).Updates(map[string]interface{}{
 				"rustdesk_id":     data.RustDeskID,
 				"rustdesk_status": data.RustDeskStatus,

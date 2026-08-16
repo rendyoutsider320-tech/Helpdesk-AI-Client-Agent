@@ -135,6 +135,7 @@ func runAgentLogic(stopChan chan struct{}) {
 	// Self-Registration in Registry
 	go func() {
 		rustdeskInfo := collector.GetRustDeskInfo()
+		anydeskInfo := collector.GetAnyDeskInfo()
 		regData := map[string]interface{}{
 			"hostname":        agentID,
 			"agent_version":   "2.0.0-enterprise",
@@ -142,12 +143,14 @@ func runAgentLogic(stopChan chan struct{}) {
 			"ip_address":      getLocalIP(), // Real local IP
 			"rustdesk_id":     rustdeskInfo.ID,
 			"rustdesk_status": rustdeskInfo.Status,
+			"anydesk_id":      anydeskInfo.ID,
+			"anydesk_status":  anydeskInfo.Status,
 			"type":            "registration",
 		}
 		if err := messaging.Publish("agent.register", regData); err != nil {
 			log.Printf("registration error: %v", err)
 		} else {
-			log.Printf("sent registration request for %s (RustDesk ID: %s)", agentID, rustdeskInfo.ID)
+			log.Printf("sent registration request for %s (RustDesk ID: %s, AnyDesk ID: %s)", agentID, rustdeskInfo.ID, anydeskInfo.ID)
 		}
 	}()
 

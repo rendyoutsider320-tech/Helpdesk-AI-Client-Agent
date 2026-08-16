@@ -75,13 +75,25 @@ func getWindowsRustDesk() (string, string) {
 
 		var candidatePaths []string
 
-		// 1. Prioritize User Profile configs (C:\Users\*\AppData\...) -> GUI RustDesk ID shown in application
-		if userMatches, err := filepath.Glob(systemDrive + `\Users\*\AppData\Roaming\RustDesk\config\RustDesk*.toml`); err == nil {
-			candidatePaths = append(candidatePaths, userMatches...)
+		// 1. Scan User Profiles (C:\Users\*\AppData\...) directly without relying on broken backslash Glob
+		usersDir := systemDrive + `\Users`
+		if entries, err := os.ReadDir(usersDir); err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					uName := entry.Name()
+					if uName == "Public" || uName == "Default" || uName == "All Users" {
+						continue
+					}
+					candidatePaths = append(candidatePaths,
+						filepath.Join(usersDir, uName, "AppData", "Roaming", "RustDesk", "config", "RustDesk2.toml"),
+						filepath.Join(usersDir, uName, "AppData", "Roaming", "RustDesk", "config", "RustDesk.toml"),
+						filepath.Join(usersDir, uName, "AppData", "Local", "RustDesk", "config", "RustDesk2.toml"),
+						filepath.Join(usersDir, uName, "AppData", "Local", "RustDesk", "config", "RustDesk.toml"),
+					)
+				}
+			}
 		}
-		if userLocalMatches, err := filepath.Glob(systemDrive + `\Users\*\AppData\Local\RustDesk\config\RustDesk*.toml`); err == nil {
-			candidatePaths = append(candidatePaths, userLocalMatches...)
-		}
+
 		if appData != "" {
 			candidatePaths = append(candidatePaths,
 				filepath.Join(appData, "RustDesk", "config", "RustDesk2.toml"),
@@ -91,6 +103,7 @@ func getWindowsRustDesk() (string, string) {
 		if localAppData != "" {
 			candidatePaths = append(candidatePaths,
 				filepath.Join(localAppData, "RustDesk", "config", "RustDesk2.toml"),
+				filepath.Join(localAppData, "RustDesk", "config", "RustDesk.toml"),
 			)
 		}
 
@@ -99,13 +112,15 @@ func getWindowsRustDesk() (string, string) {
 			filepath.Join(programData, "RustDesk", "config", "RustDesk2.toml"),
 			filepath.Join(programData, "RustDesk", "config", "RustDesk.toml"),
 			systemDrive+`\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+			systemDrive+`\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk.toml`,
 			systemDrive+`\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk2.toml`,
+			systemDrive+`\Windows\System32\config\systemprofile\AppData\Roaming\RustDesk\config\RustDesk.toml`,
 		)
 
 		for _, p := range candidatePaths {
 			if fileExists(p) {
 				foundID := extractRustDeskIDFromTOML(p)
-				if foundID != "" {
+				if foundID != "" && foundID != "359024062" && foundID != "982341506" {
 					id = foundID
 					break
 				}

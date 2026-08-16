@@ -92,15 +92,15 @@ func (ns *NotificationService) DeleteNotification(notificationID string) error {
 
 // NotifyTicketCreated notifies relevant users when ticket is created
 func (ns *NotificationService) NotifyTicketCreated(ticketID string, ticketNo string, createdBy string) error {
-	var admins []db.User
+	var staff []db.User
 
-	if err := db.DB.Where("role = ?", "admin").Find(&admins).Error; err != nil {
+	if err := db.DB.Where("role IN ?", []string{"admin", "technician"}).Find(&staff).Error; err != nil {
 		return err
 	}
 
-	for _, admin := range admins {
+	for _, member := range staff {
 		_, err := ns.CreateNotification(
-			admin.ID,
+			member.ID,
 			"New Ticket Created",
 			"Ticket "+ticketNo+" has been created",
 			TypeTicketCreated,
@@ -109,7 +109,7 @@ func (ns *NotificationService) NotifyTicketCreated(ticketID string, ticketNo str
 		)
 
 		if err != nil {
-			log.Printf("failed to create notification for admin %s: %v", admin.ID, err)
+			log.Printf("failed to create notification for staff %s: %v", member.ID, err)
 		}
 	}
 
@@ -203,12 +203,12 @@ func (ns *NotificationService) NotifyCommentAdded(ticketID string, ticketNo stri
 		if ticket.AssignedTo != nil && *ticket.AssignedTo != "" {
 			recipients[*ticket.AssignedTo] = true
 		}
-		// Also notify all admins
-		var admins []db.User
-		if err := db.DB.Where("role = ?", "admin").Find(&admins).Error; err == nil {
-			for _, admin := range admins {
-				if admin.ID != commentAuthorID {
-					recipients[admin.ID] = true
+		// Also notify all admins and technicians
+		var staff []db.User
+		if err := db.DB.Where("role IN ?", []string{"admin", "technician"}).Find(&staff).Error; err == nil {
+			for _, member := range staff {
+				if member.ID != commentAuthorID {
+					recipients[member.ID] = true
 				}
 			}
 		}
@@ -222,12 +222,12 @@ func (ns *NotificationService) NotifyCommentAdded(ticketID string, ticketNo stri
 		if ticket.AssignedTo != nil && *ticket.AssignedTo != "" && *ticket.AssignedTo != commentAuthorID {
 			recipients[*ticket.AssignedTo] = true
 		}
-		// Notify all admins (except the author)
-		var admins []db.User
-		if err := db.DB.Where("role = ?", "admin").Find(&admins).Error; err == nil {
-			for _, admin := range admins {
-				if admin.ID != commentAuthorID {
-					recipients[admin.ID] = true
+		// Notify all admins and technicians (except the author)
+		var staff []db.User
+		if err := db.DB.Where("role IN ?", []string{"admin", "technician"}).Find(&staff).Error; err == nil {
+			for _, member := range staff {
+				if member.ID != commentAuthorID {
+					recipients[member.ID] = true
 				}
 			}
 		}

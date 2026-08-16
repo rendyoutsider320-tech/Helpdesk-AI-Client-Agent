@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -131,63 +130,46 @@ func (a *Agent) Analyze(ctx context.Context, request AgentRequest) (*AgentRespon
 	}
 
 	// Use LLM to synthesize the final report if configured
-	llmCtx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
-	defer cancel()
-
-	if llmOutput, err := a.queryLLM(llmCtx, a.buildLLMPrompt(request, response)); err == nil {
-		response.AIReport = llmOutput
-		response.ToolOutputs["llm_synthesis"] = llmOutput
+	articles := getMatchedKBArticles(response.KBMatches)
+	if len(articles) == 0 {
+		outOfScopeMsg := "Dugaan Penyebab: Di luar scope Knowledge Base\n\nMaaf, kendala atau pertanyaan ini di luar scope database Knowledge Base kami."
+		response.AIReport = outOfScopeMsg
+		response.RootCause = "Di luar scope Knowledge Base"
+		response.ToolOutputs["llm_synthesis"] = outOfScopeMsg
 		if response.Confidence < 0.9 {
 			response.Confidence = 0.9
 		}
-
-		// Enterprise Addition: RCA & Confidence
-		response.RootCause = extractRootCause(llmOutput)
-		if response.RootCause != "" && !strings.HasPrefix(response.RootCause, "Akar Masalah") {
-			response.Suggestions = append(response.Suggestions, "AI RCA: "+response.RootCause)
-		}
-
 	} else {
-		log.Printf("LLM synthesis skipped: %v", err)
-		// Construct a structured fallback report using tool outputs
-		var kbTitles []string
-		if response.KBMatches != nil {
-			if m, ok := response.KBMatches.(map[string]interface{}); ok {
-				if res, ok := m["results"]; ok {
-					switch val := res.(type) {
-					case []db.KBArticle:
-						for _, art := range val {
-							kbTitles = append(kbTitles, "- "+art.Title)
-						}
-					case []map[string]interface{}:
-						for _, art := range val {
-							if title, ok := art["title"].(string); ok {
-								kbTitles = append(kbTitles, "- "+title)
-							}
-						}
-					case []interface{}:
-						for _, item := range val {
-							if art, ok := item.(map[string]interface{}); ok {
-								if title, ok := art["title"].(string); ok {
-									kbTitles = append(kbTitles, "- "+title)
-								}
-							}
-						}
-					}
-				}
+		llmCtx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+		defer cancel()
+
+		if llmOutput, err := a.queryLLM(llmCtx, a.buildLLMPrompt(request, response, articles)); err == nil {
+			llmOutput = cleanLLMOutput(llmOutput)
+			response.AIReport = llmOutput
+			response.ToolOutputs["llm_synthesis"] = llmOutput
+			if response.Confidence < 0.9 {
+				response.Confidence = 0.9
 			}
-		}
 
-		kbSection := "Tidak ditemukan kecocokan KB."
-		if len(kbTitles) > 0 {
-			kbSection = strings.Join(kbTitles, "\n")
-		}
+			// Enterprise Addition: RCA & Confidence
+			response.RootCause = extractRootCause(llmOutput)
+			if response.RootCause != "" && !strings.HasPrefix(response.RootCause, "Akar Masalah") {
+				response.Suggestions = append(response.Suggestions, "AI RCA: "+response.RootCause)
+			}
 
-		response.AIReport = fmt.Sprintf("### Laporan Analisis Diagnostik (Fallback)\n\n**Penyebab Masalah (Root Cause):** %s\n**Tingkat Keparahan (Severity):** %s\n\n**Rekomendasi Artikel KB:**\n%s\n\n*Catatan: Sintesis Laporan AI Utama dilewati karena batas waktu server.*", response.RootCause, response.Severity, kbSection)
+		} else {
+			log.Printf("LLM synthesis skipped: %v", err)
+			var kbTitles []string
+			for _, artStr := range articles {
+				kbTitles = append(kbTitles, "- "+artStr)
+			}
+			kbSection := strings.Join(kbTitles, "\n")
+			response.AIReport = fmt.Sprintf("### Laporan Analisis Diagnostik (Fallback)\n\n**Penyebab Masalah (Root Cause):** %s\n**Tingkat Keparahan (Severity):** %s\n\n**Rekomendasi Artikel KB:**\n%s\n\n*Catatan: Sintesis Laporan AI Utama dilewati karena batas waktu server.*", response.RootCause, response.Severity, kbSection)
+		}
 	}
 
-	// Enterprise Addition: Check for automated action candidates (independent of LLM online status)
-	if request.TicketID != "" {
+	// Enterprise Addition: Check for automated action candidates (only if KB article matched)
+	if request.TicketID != "" && len(articles) > 0 {
 		lowerDesc := strings.ToLower(request.Description)
 		if strings.Contains(lowerDesc, "spooler") {
 			log.Printf("Detected automated fix candidate: Restart Spooler")
@@ -254,12 +236,10 @@ func parseKBResultItem(item interface{}) (title, category, snippet string) {
 	return "", "", ""
 }
 
-func (a *Agent) buildLLMPrompt(request AgentRequest, response *AgentResponse) string {
-	kbSummary := "Tidak ditemukan artikel Knowledge Base yang relevan."
+func getMatchedKBArticles(kbMatches interface{}) []string {
 	var articles []string
-
-	if response.KBMatches != nil {
-		if m, ok := response.KBMatches.(map[string]interface{}); ok {
+	if kbMatches != nil {
+		if m, ok := kbMatches.(map[string]interface{}); ok {
 			if res, ok := m["results"]; ok {
 				var items []interface{}
 				switch val := res.(type) {
@@ -283,8 +263,8 @@ func (a *Agent) buildLLMPrompt(request AgentRequest, response *AgentResponse) st
 					}
 					t, c, snippetText := parseKBResultItem(item)
 					if t != "" || snippetText != "" {
-						if len(snippetText) > 400 {
-							snippetText = snippetText[:400] + "..."
+						if len(snippetText) > 4000 {
+							snippetText = snippetText[:4000] + "..."
 						}
 						articles = append(articles, fmt.Sprintf("Artikel %d: %s (Kategori: %s)\nSolusi/Langkah: %s", len(articles)+1, t, c, snippetText))
 					}
@@ -292,50 +272,60 @@ func (a *Agent) buildLLMPrompt(request AgentRequest, response *AgentResponse) st
 			}
 		}
 	}
-	if len(articles) > 0 {
-		kbSummary = strings.Join(articles, "\n---\n")
-	}
+	return articles
+}
 
-	cleanOutputs := make(map[string]interface{})
-	for k, v := range response.ToolOutputs {
-		if k == "kb_search" || k == "rag_search" {
+func cleanLLMOutput(output string) string {
+	lines := strings.Split(output, "\n")
+	var cleaned []string
+	skipRuleBlock := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		upper := strings.ToUpper(trimmed)
+
+		if strings.Contains(upper, "ATURAN PERUMUSAN LAPORAN") || strings.Contains(upper, "STRICT RAG KNOWLEDGE BASE POLICY") || strings.Contains(upper, "ATURAN UTAMA") {
+			skipRuleBlock = true
 			continue
 		}
-		cleanOutputs[k] = v
+
+		if skipRuleBlock {
+			if (strings.HasPrefix(trimmed, "1.") || strings.HasPrefix(trimmed, "2.") || strings.HasPrefix(trimmed, "3.") || strings.HasPrefix(trimmed, "4.")) && (strings.Contains(upper, "BERIKAN") || strings.Contains(upper, "DILARANG") || strings.Contains(upper, "WAJIB") || strings.Contains(upper, "INSTRUKSI")) {
+				continue
+			}
+			skipRuleBlock = false
+		}
+
+		cleaned = append(cleaned, line)
 	}
 
-	return fmt.Sprintf(`Anda adalah Asisten AI Helpdesk IT (NOC Operator Bot) yang ramah, ringkas, dan sangat terstruktur.
+	result := strings.Join(cleaned, "\n")
+	return strings.TrimSpace(result)
+}
 
-Deskripsi Kendala Tiket:
+func (a *Agent) buildLLMPrompt(request AgentRequest, response *AgentResponse, articles []string) string {
+	kbSummary := strings.Join(articles, "\n---\n")
+
+	return fmt.Sprintf(`Anda adalah Asisten AI Helpdesk IT berbasis RAG Knowledge Base. Susun panduan penanganan berdasarkan artikel Knowledge Base berikut. DILARANG KERAS menyalin teks instruksi ini pada respon final.
+
+Deskripsi Pesan / Kendala Tiket:
 %s
 
 Tingkat Keparahan (Severity): %s
 
-Hasil Pencarian Knowledge Base (Qdrant Vector DB / DB):
+Artikel Knowledge Base Terkait (Qdrant Vector DB / DB):
 %s
 
-Aturan Format Laporan (STRICT FORMAT MATCHING):
-1. Mulai dengan 1 kalimat "Dugaan Penyebab: [penyebab ringkas]".
-2. Berikan 1 kalimat pengantar yang ramah.
-3. Gunakan header persis: "💡 Langkah Penanganan (Remediation):"
-4. Buat 3 langkah penanganan berupa daftar nomor urut (1., 2., 3.). Setiap langkah HARUS ringkas (maksimal 1 kalimat padat per nomor, DILARANG membuat sub-bullet/anak poin beranak).
-5. Di bagian akhir, tambahkan garis pembatas "-----------------------------------" dan 1 kalimat penutup: "Bila kendala belum terselesaikan, silakan hubungi Teknisi IT."
-6. JIKA artikel Knowledge Base KOSONG atau TIDAK RELEVAN:
-   - Pengantar: "Panduan spesifik untuk kendala ini tidak ditemukan di Knowledge Base internal. Berikut adalah langkah pemeriksaan umum:"
-   - Berikan 3 langkah pemeriksaan umum yang logis (misal: cek koneksi, bersihkan cache, atau restart service).
-7. DILARANG KERAS mencantumkan kalimat instruksi sistem (seperti "Jika artikel Knowledge Base yang diberikan...").
-8. DILARANG mencantumkan langkah router/modem/tethering KECUALI tiket mengeluhkan koneksi internet.
-9. WAJIB menggunakan BAHASA INDONESIA yang rapi, ramah, dan mudah dipahami.
+Instruksi: Berikan langkah-langkah penanganan LENGKAP dan DETAIL sesuai artikel Knowledge Base di atas tanpa memotong instruksi. Gunakan BAHASA INDONESIA yang rapi dan profesional.
 
-Format Output WAJIB (Ikuti Struktur Ini Persis):
-Dugaan Penyebab: [1 kalimat singkat penyebab kendala]
+Format Output yang Harus Dihasilkan:
+Dugaan Penyebab: [1 kalimat singkat penyebab kendala berdasarkan KB]
 
-Berikut adalah panduan penanganan untuk kendala ini:
+Berikut adalah panduan penanganan lengkap sesuai SOP Knowledge Base:
 
 💡 Langkah Penanganan (Remediation):
-1. [Langkah 1 ringkas & padat]
-2. [Langkah 2 ringkas & padat]
-3. [Langkah 3 ringkas & padat]
+1. [Langkah 1 SOP detail dari KB]
+2. [Langkah 2 SOP detail dari KB]
 
 -----------------------------------
 Bila kendala belum terselesaikan, silakan hubungi Teknisi IT.`, request.Description, response.Severity, kbSummary)
@@ -425,14 +415,16 @@ func (a *Agent) storeAnalysis(ticketID string, response *AgentResponse) error {
 
 	rca := response.RootCause
 	if rca == "" {
-		rca = "Terdeteksi lonjakan pemakaian CPU (95-100%) dan RAM penuh (>90%) pada perangkat NUC kasir yang berpotensi disebabkan oleh aplikasi yang hang/memory leak."
+		rca = "Akar masalah di luar scope Knowledge Base atau belum dianalisis."
 	}
 
 	var suggestionsFormatted string
 	if len(response.Suggestions) > 0 {
 		suggestionsFormatted = "- " + strings.Join(response.Suggestions, "\n- ")
+	} else if rca == "Di luar scope Knowledge Base" || strings.Contains(summary, "di luar scope") {
+		suggestionsFormatted = "Tidak ada rekomendasi resolusi otomatis (di luar scope Knowledge Base)."
 	} else {
-		suggestionsFormatted = "- Lakukan pembersihan memory cache (drop_caches)\n- Periksa dan restart proses aplikasi kasir yang hang\n- Jalankan Remote Agent Auto-Fix pada konsol operasi"
+		suggestionsFormatted = "Tidak ada rekomendasi resolusi otomatis untuk kendala ini."
 	}
 
 	updates := map[string]interface{}{
@@ -530,10 +522,7 @@ func selectAgentForRequest(request AgentRequest) string {
 func InitializeAgents(toolRegistry *tools.Registry) *Orchestrator {
 	orchestrator := NewOrchestrator(toolRegistry)
 
-	model := os.Getenv("LLM_MODEL")
-	if model == "" {
-		model = "qwen2.5"
-	}
+	model := GetActiveLLMModel()
 
 	// Register different specialized agents
 	orchestrator.RegisterAgent("printer-analyst", model)

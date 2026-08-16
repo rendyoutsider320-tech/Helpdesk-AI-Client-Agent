@@ -61,6 +61,10 @@ func CollectTelemetry() map[string]interface{} {
 	telemetry["rustdesk_id"] = rustdeskInfo.ID
 	telemetry["rustdesk_status"] = rustdeskInfo.Status
 
+	anydeskInfo := GetAnyDeskInfo()
+	telemetry["anydesk_id"] = anydeskInfo.ID
+	telemetry["anydesk_status"] = anydeskInfo.Status
+
 	return telemetry
 }
 

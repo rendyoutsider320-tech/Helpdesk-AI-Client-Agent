@@ -46,15 +46,36 @@ type ollamaRequest struct {
 }
 
 func (a *Agent) queryLLM(ctx context.Context, prompt string) (string, error) {
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		return queryOpenAI(ctx, key, prompt, a.model)
+	cfg := GetAIConfig()
+	model := a.model
+	if model == "" {
+		model = cfg.LLMModel
 	}
 
-	if baseURL := os.Getenv("OLLAMA_URL"); baseURL != "" {
-		return queryOllama(ctx, baseURL, prompt, a.model)
+	if strings.HasPrefix(strings.ToLower(model), "gemini") {
+		geminiKey := cfg.GeminiAPIKey
+		if geminiKey == "" {
+			geminiKey = os.Getenv("GEMINI_API_KEY")
+		}
+		if geminiKey != "" {
+			return queryGemini(ctx, geminiKey, prompt, model)
+		}
+		return "", errors.New("Gemini model selected but GEMINI_API_KEY is not configured")
 	}
 
-	return "", errors.New("no LLM provider configured; set OPENAI_API_KEY or OLLAMA_URL")
+	if cfg.OpenAIKey != "" && (strings.HasPrefix(model, "gpt-") || strings.HasPrefix(model, "claude-")) {
+		return queryOpenAI(ctx, cfg.OpenAIKey, prompt, model)
+	}
+
+	baseURL := cfg.OllamaURL
+	if baseURL == "" {
+		baseURL = os.Getenv("OLLAMA_URL")
+	}
+	if baseURL != "" {
+		return queryOllama(ctx, baseURL, prompt, model)
+	}
+
+	return "", errors.New("no LLM provider configured; set OLLAMA_URL, OPENAI_API_KEY, or GEMINI_API_KEY")
 }
 
 func queryOpenAI(ctx context.Context, apiKey, prompt, model string) (string, error) {
@@ -74,7 +95,7 @@ func queryOpenAI(ctx context.Context, apiKey, prompt, model string) (string, err
 			{Role: "user", Content: prompt},
 		},
 		Temperature: 0.2,
-		MaxTokens:   512,
+		MaxTokens:   2048,
 	}
 
 	payload, err := json.Marshal(reqBody)
@@ -119,10 +140,7 @@ func queryOpenAI(ctx context.Context, apiKey, prompt, model string) (string, err
 
 func queryOllama(ctx context.Context, baseURL, prompt, model string) (string, error) {
 	if model == "" {
-		model = os.Getenv("LLM_MODEL")
-		if model == "" {
-			model = "qwen2.5"
-		}
+		model = GetActiveLLMModel()
 	}
 
 	reqBody := ollamaRequest{
@@ -131,7 +149,7 @@ func queryOllama(ctx context.Context, baseURL, prompt, model string) (string, er
 		Stream: false,
 		Options: ollamaOptions{
 			Temperature: 0.2,
-			NumPredict:  512,
+			NumPredict:  2048,
 		},
 	}
 
@@ -177,6 +195,88 @@ func queryOllama(ctx context.Context, baseURL, prompt, model string) (string, er
 		if text, ok := parsed["response"].(string); ok {
 			return text, nil
 		}
+	}
+
+	return string(body), nil
+}
+
+type geminiReq struct {
+	Contents []geminiContent `json:"contents"`
+}
+
+type geminiContent struct {
+	Parts []geminiPart `json:"parts"`
+}
+
+type geminiPart struct {
+	Text string `json:"text"`
+}
+
+type geminiResp struct {
+	Candidates []struct {
+		Content geminiContent `json:"content"`
+	} `json:"candidates"`
+	Error *struct {
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
+func QueryGeminiTest(ctx context.Context, apiKey, prompt, model string) (string, error) {
+	return queryGemini(ctx, apiKey, prompt, model)
+}
+
+func queryGemini(ctx context.Context, apiKey, prompt, model string) (string, error) {
+	if model == "" {
+		model = "gemini-2.0-flash"
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
+
+	reqPayload := geminiReq{
+		Contents: []geminiContent{
+			{
+				Parts: []geminiPart{
+					{Text: prompt},
+				},
+			},
+		},
+	}
+
+	payload, err := json.Marshal(reqPayload)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var gResp geminiResp
+	if err := json.Unmarshal(body, &gResp); err == nil {
+		if gResp.Error != nil && gResp.Error.Message != "" {
+			return "", fmt.Errorf("Gemini API Error: %s", gResp.Error.Message)
+		}
+		if len(gResp.Candidates) > 0 && len(gResp.Candidates[0].Content.Parts) > 0 {
+			return gResp.Candidates[0].Content.Parts[0].Text, nil
+		}
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Gemini API HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
 	return string(body), nil

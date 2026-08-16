@@ -124,7 +124,7 @@ func (r *RAGSearchTool) Execute(ctx context.Context, input map[string]interface{
 			"id":       entry.Article.ID,
 			"title":    entry.Article.Title,
 			"category": entry.Article.Category,
-			"snippet":  snippet(entry.Article.Content, query),
+			"snippet":  entry.Article.Content,
 			"score":    entry.Score,
 		})
 	}

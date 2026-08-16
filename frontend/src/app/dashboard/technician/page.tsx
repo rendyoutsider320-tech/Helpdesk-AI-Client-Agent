@@ -455,6 +455,23 @@ export default function TechnicianDashboard() {
     }
   }, [selectedTicket])
 
+  // Auto-poll active ticket details every 2.5 seconds
+  useEffect(() => {
+    if (!selectedTicket?.id) return
+    const pollInterval = setInterval(() => {
+      reloadSelectedTicketDetails(selectedTicket.id)
+    }, 2500)
+    return () => clearInterval(pollInterval)
+  }, [selectedTicket?.id])
+
+  // Auto-poll tickets list every 5 seconds
+  useEffect(() => {
+    const listInterval = setInterval(() => {
+      fetchTickets()
+    }, 5000)
+    return () => clearInterval(listInterval)
+  }, [currentPage, activeFilter, ticketsSearchQuery])
+
   const showLocalNotification = (message: string) => {
     setNotificationNotificationText(message)
     setTimeout(() => {

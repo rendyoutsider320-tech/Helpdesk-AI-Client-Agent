@@ -1,5 +1,5 @@
 Package: helpdesk-agent
-Version: 2.0.0
+Version: 3.8.0
 Architecture: amd64
 Maintainer: Helpdesk AI Team <admin@helpdesk.ai>
 Installed-Size: 15360

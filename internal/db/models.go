@@ -136,6 +136,8 @@ type Device struct {
 	OSName         string     `gorm:"-" json:"os_name"`
 	RustDeskID     string     `gorm:"column:rustdesk_id" json:"rustdesk_id"`
 	RustDeskStatus string     `gorm:"column:rustdesk_status" json:"rustdesk_status"`
+	AnyDeskID      string     `gorm:"column:anydesk_id" json:"anydesk_id"`
+	AnyDeskStatus  string     `gorm:"column:anydesk_status" json:"anydesk_status"`
 
 	// Relations
 	Metrics []Metric `json:"metrics,omitempty"`
@@ -259,6 +261,8 @@ type AgentRegistry struct {
 	OS             string    `json:"os"`
 	RustDeskID     string    `gorm:"column:rustdesk_id" json:"rustdesk_id"`
 	RustDeskStatus string    `gorm:"column:rustdesk_status" json:"rustdesk_status"`
+	AnyDeskID      string    `gorm:"column:anydesk_id" json:"anydesk_id"`
+	AnyDeskStatus  string    `gorm:"column:anydesk_status" json:"anydesk_status"`
 	LastSeen       time.Time `json:"last_seen"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
@@ -342,6 +346,8 @@ type Asset struct {
 	AssetInfo       string     `json:"asset_info"`
 	RustDeskID      string     `gorm:"column:rustdesk_id" json:"rustdesk_id"`
 	RustDeskStatus  string     `gorm:"column:rustdesk_status" json:"rustdesk_status"`
+	AnyDeskID       string     `gorm:"column:anydesk_id" json:"anydesk_id"`
+	AnyDeskStatus   string     `gorm:"column:anydesk_status" json:"anydesk_status"`
 	OwnerID         *uuid.UUID `json:"owner_id,omitempty"`
 	WarrantyExpiry  *time.Time `json:"warranty_expiry,omitempty"`
 	PurchaseDate    *time.Time `json:"purchase_date,omitempty"`

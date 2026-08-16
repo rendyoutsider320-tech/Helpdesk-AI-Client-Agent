@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/helpdesk-ai/core/internal/ai"
 	"github.com/helpdesk-ai/core/internal/auth"
 	"github.com/helpdesk-ai/core/internal/db"
 	"github.com/helpdesk-ai/core/internal/embeddings"
@@ -36,11 +36,8 @@ func handleChatStream(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	ollamaURL := os.Getenv("OLLAMA_URL")
-	model := os.Getenv("LLM_MODEL")
-	if model == "" {
-		model = "qwen3:8b-q4_K_M"
-	}
+	ollamaURL := ai.GetActiveOllamaURL()
+	model := ai.GetActiveLLMModel()
 	if ollamaURL == "" {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "AI service not configured"})
 		return

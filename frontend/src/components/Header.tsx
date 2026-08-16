@@ -61,11 +61,11 @@ export default function Header() {
     }
   }, [user?.role])
 
-  // Fetch on mount & poll every 30s & listen to WebSocket events
+  // Fetch on mount & poll every 3s & listen to WebSocket events
   useEffect(() => {
     if (!mounted) return
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30_000)
+    const interval = setInterval(fetchNotifications, 3_000)
 
     const handleWsMessage = (e: Event) => {
       const data = (e as CustomEvent).detail

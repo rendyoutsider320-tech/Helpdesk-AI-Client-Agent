@@ -29,6 +29,8 @@ func StartSubscribers() {
 			IPAddress      string `json:"ip_address"`
 			RustDeskID     string `json:"rustdesk_id"`
 			RustDeskStatus string `json:"rustdesk_status"`
+			AnyDeskID      string `json:"anydesk_id"`
+			AnyDeskStatus  string `json:"anydesk_status"`
 		}
 		if err := json.Unmarshal(m.Data, &data); err != nil {
 			return
@@ -41,6 +43,8 @@ func StartSubscribers() {
 			IPAddress:      data.IPAddress,
 			RustDeskID:     data.RustDeskID,
 			RustDeskStatus: data.RustDeskStatus,
+			AnyDeskID:      data.AnyDeskID,
+			AnyDeskStatus:  data.AnyDeskStatus,
 			Status:         "online",
 			LastSeen:       time.Now(),
 		}
@@ -61,6 +65,12 @@ func StartSubscribers() {
 		if data.RustDeskStatus != "" {
 			updates["rustdesk_status"] = data.RustDeskStatus
 		}
+		if data.AnyDeskID != "" {
+			updates["anydesk_id"] = data.AnyDeskID
+		}
+		if data.AnyDeskStatus != "" {
+			updates["anydesk_status"] = data.AnyDeskStatus
+		}
 		db.DB.Model(&agent).Where("hostname = ?", data.Hostname).Updates(updates)
 
 		// Also upsert in devices table
@@ -78,6 +88,8 @@ func StartSubscribers() {
 				IPAddress:      ip,
 				RustDeskID:     data.RustDeskID,
 				RustDeskStatus: data.RustDeskStatus,
+				AnyDeskID:      data.AnyDeskID,
+				AnyDeskStatus:  data.AnyDeskStatus,
 				Status:         "active",
 				LastSeen:       &now,
 			}
@@ -96,15 +108,28 @@ func StartSubscribers() {
 			if data.RustDeskStatus != "" {
 				deviceUpdates["rustdesk_status"] = data.RustDeskStatus
 			}
+			if data.AnyDeskID != "" {
+				deviceUpdates["anydesk_id"] = data.AnyDeskID
+			}
+			if data.AnyDeskStatus != "" {
+				deviceUpdates["anydesk_status"] = data.AnyDeskStatus
+			}
 			db.DB.Model(&device).Updates(deviceUpdates)
 		}
 
-		// Also update matching asset
-		if data.RustDeskID != "" && data.RustDeskID != "359024062" && data.RustDeskID != "982341506" {
-			db.DB.Model(&db.Asset{}).Where("hostname = ?", data.Hostname).Updates(map[string]interface{}{
-				"rustdesk_id":     data.RustDeskID,
-				"rustdesk_status": data.RustDeskStatus,
-			})
+		if data.RustDeskID != "" || data.AnyDeskID != "" {
+			assetUpdates := map[string]interface{}{}
+			if data.RustDeskID != "" && data.RustDeskID != "359024062" && data.RustDeskID != "982341506" {
+				assetUpdates["rustdesk_id"] = data.RustDeskID
+				assetUpdates["rustdesk_status"] = data.RustDeskStatus
+			}
+			if data.AnyDeskID != "" {
+				assetUpdates["anydesk_id"] = data.AnyDeskID
+				assetUpdates["anydesk_status"] = data.AnyDeskStatus
+			}
+			if len(assetUpdates) > 0 {
+				db.DB.Model(&db.Asset{}).Where("hostname = ?", data.Hostname).Updates(assetUpdates)
+			}
 		}
 		log.Printf("Agent registered: %s (IP: %s, RustDesk ID: %s)", data.Hostname, ip, data.RustDeskID)
 	})
@@ -124,6 +149,8 @@ func StartSubscribers() {
 			OS             string  `json:"os"`
 			RustDeskID     string  `json:"rustdesk_id"`
 			RustDeskStatus string  `json:"rustdesk_status"`
+			AnyDeskID      string  `json:"anydesk_id"`
+			AnyDeskStatus  string  `json:"anydesk_status"`
 		}
 		if err := json.Unmarshal(m.Data, &data); err != nil {
 			return
@@ -139,6 +166,12 @@ func StartSubscribers() {
 		}
 		if data.RustDeskStatus != "" {
 			agentUpdates["rustdesk_status"] = data.RustDeskStatus
+		}
+		if data.AnyDeskID != "" {
+			agentUpdates["anydesk_id"] = data.AnyDeskID
+		}
+		if data.AnyDeskStatus != "" {
+			agentUpdates["anydesk_status"] = data.AnyDeskStatus
 		}
 		db.DB.Model(&db.AgentRegistry{}).Where("hostname = ?", hostname).Updates(agentUpdates)
 
@@ -178,14 +211,28 @@ func StartSubscribers() {
 			if data.RustDeskStatus != "" {
 				deviceUpdates["rustdesk_status"] = data.RustDeskStatus
 			}
+			if data.AnyDeskID != "" {
+				deviceUpdates["anydesk_id"] = data.AnyDeskID
+			}
+			if data.AnyDeskStatus != "" {
+				deviceUpdates["anydesk_status"] = data.AnyDeskStatus
+			}
 			db.DB.Model(&device).Updates(deviceUpdates)
 		}
 
-		if data.RustDeskID != "" {
-			db.DB.Model(&db.Asset{}).Where("hostname = ?", hostname).Updates(map[string]interface{}{
-				"rustdesk_id":     data.RustDeskID,
-				"rustdesk_status": data.RustDeskStatus,
-			})
+		if data.RustDeskID != "" || data.AnyDeskID != "" {
+			assetUpdates := map[string]interface{}{}
+			if data.RustDeskID != "" {
+				assetUpdates["rustdesk_id"] = data.RustDeskID
+				assetUpdates["rustdesk_status"] = data.RustDeskStatus
+			}
+			if data.AnyDeskID != "" {
+				assetUpdates["anydesk_id"] = data.AnyDeskID
+				assetUpdates["anydesk_status"] = data.AnyDeskStatus
+			}
+			if len(assetUpdates) > 0 {
+				db.DB.Model(&db.Asset{}).Where("hostname = ?", hostname).Updates(assetUpdates)
+			}
 		}
 
 		// Fetch device again to ensure we have the correct ID for GORM relations

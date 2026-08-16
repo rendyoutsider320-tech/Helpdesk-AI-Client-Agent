@@ -203,21 +203,40 @@ export default function AssetInventory() {
                                                     {asset.asset_info || '-'}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    {asset.rustdesk_id ? (
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-emerald-400">
-                                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                                                {asset.rustdesk_id}
-                                                            </div>
-                                                            <a
-                                                                href={`rustdesk://${asset.rustdesk_id}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500 hover:text-slate-950 transition duration-150 shadow-sm"
-                                                                title="Buka RustDesk Remote Client"
-                                                            >
-                                                                🔌 Remote
-                                                            </a>
+                                                    {(asset.rustdesk_id || asset.anydesk_id) ? (
+                                                        <div className="flex flex-col gap-1.5">
+                                                            {asset.rustdesk_id && (
+                                                                <div className="flex items-center justify-between gap-1 border border-amber-500/20 bg-amber-500/5 rounded-lg px-2 py-1">
+                                                                    <span className="font-mono text-[11px] font-semibold text-amber-400">
+                                                                        RD: {asset.rustdesk_id}
+                                                                    </span>
+                                                                    <a
+                                                                        href={`rustdesk://${asset.rustdesk_id}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition"
+                                                                        title="Buka RustDesk Remote Client"
+                                                                    >
+                                                                        🔌 Remote
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                            {asset.anydesk_id && (
+                                                                <div className="flex items-center justify-between gap-1 border border-rose-500/20 bg-rose-500/5 rounded-lg px-2 py-1">
+                                                                    <span className="font-mono text-[11px] font-semibold text-rose-400">
+                                                                        AD: {asset.anydesk_id}
+                                                                    </span>
+                                                                    <a
+                                                                        href={`anydesk://${asset.anydesk_id}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white hover:bg-rose-400 transition"
+                                                                        title="Buka AnyDesk Remote Client"
+                                                                    >
+                                                                        🔴 Remote
+                                                                    </a>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <span className={`text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -407,79 +426,147 @@ export default function AssetInventory() {
                                                 })()}
                                             </p>
                                         </div>
-                                        <div className="col-span-2 border-t border-white/5 pt-3 mt-1">
-                                            <p className={`text-xs uppercase font-bold tracking-wider ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>📡 RustDesk Remote ID</p>
-                                            <div className="mt-1 flex items-center gap-3">
-                                                {selectedAsset.rustdesk_id ? (
-                                                    <>
-                                                        <span className="font-mono font-bold text-base text-emerald-400">{selectedAsset.rustdesk_id}</span>
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                                            {selectedAsset.rustdesk_status || 'online'}
-                                                        </span>
-                                                        <a
-                                                            href={`rustdesk://${selectedAsset.rustdesk_id}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition shadow-md"
-                                                        >
-                                                            🔌 Hubungkan RustDesk
-                                                        </a>
-                                                    </>
-                                                ) : (
-                                                    <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                        Belum Terdeteksi (Agent belum mengirimkan ID RustDesk)
-                                                    </span>
-                                                )}
+                                        <div className="col-span-2 border-t border-white/5 pt-3 mt-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p className={`text-xs uppercase font-bold tracking-wider ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>📡 RustDesk Remote ID</p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    {selectedAsset.rustdesk_id ? (
+                                                        <>
+                                                            <span className="font-mono font-bold text-sm text-emerald-400">{selectedAsset.rustdesk_id}</span>
+                                                            <a
+                                                                href={`rustdesk://${selectedAsset.rustdesk_id}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition"
+                                                            >
+                                                                🔌 RustDesk
+                                                            </a>
+                                                        </>
+                                                    ) : (
+                                                        <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Belum Terdeteksi</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className={`text-xs uppercase font-bold tracking-wider ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>🔴 AnyDesk Remote ID</p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    {selectedAsset.anydesk_id ? (
+                                                        <>
+                                                            <span className="font-mono font-bold text-sm text-rose-400">{selectedAsset.anydesk_id}</span>
+                                                            <a
+                                                                href={`anydesk://${selectedAsset.anydesk_id}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-rose-500 text-white hover:bg-rose-400 transition"
+                                                            >
+                                                                🔴 AnyDesk
+                                                            </a>
+                                                        </>
+                                                    ) : (
+                                                        <span className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Belum Terdeteksi</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* RustDesk Premium Card */}
-                                    {selectedAsset.rustdesk_id ? (
-                                        <div className={`border rounded-2xl p-5 flex items-center justify-between transition duration-200 ${
-                                            isDarkMode 
-                                                ? 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border-amber-500/30' 
-                                                : 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-amber-200 shadow-sm'
-                                        }`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl shadow-inner">
-                                                    📡
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>RustDesk Remote Control</h4>
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                                            {selectedAsset.rustdesk_status || 'online'}
-                                                        </span>
+                                    {/* Remote Control Cards Container */}
+                                    <div className="flex flex-col gap-3">
+                                        {/* RustDesk Premium Card */}
+                                        {selectedAsset.rustdesk_id ? (
+                                            <div className={`border rounded-2xl p-5 flex items-center justify-between transition duration-200 ${
+                                                isDarkMode 
+                                                    ? 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border-amber-500/30' 
+                                                    : 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-amber-200 shadow-sm'
+                                            }`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl shadow-inner">
+                                                        📡
                                                     </div>
-                                                    <p className={`text-xs mt-1 font-mono ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
-                                                        RustDesk ID: <span className="font-bold tracking-wider text-sm">{selectedAsset.rustdesk_id}</span>
-                                                    </p>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>RustDesk Remote Control</h4>
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                                                {selectedAsset.rustdesk_status || 'online'}
+                                                            </span>
+                                                        </div>
+                                                        <p className={`text-xs mt-1 font-mono ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                                                            RustDesk ID: <span className="font-bold tracking-wider text-sm">{selectedAsset.rustdesk_id}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(selectedAsset.rustdesk_id);
+                                                            alert('RustDesk ID tersalin: ' + selectedAsset.rustdesk_id);
+                                                        }}
+                                                        className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                                                            isDarkMode ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white' : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
+                                                        }`}
+                                                    >
+                                                        📋 Copy ID
+                                                    </button>
+                                                    <a
+                                                        href={`rustdesk://${selectedAsset.rustdesk_id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-amber-500/25"
+                                                    >
+                                                        🔌 Remote RustDesk
+                                                    </a>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(selectedAsset.rustdesk_id);
-                                                        alert('RustDesk ID tersalin: ' + selectedAsset.rustdesk_id);
-                                                    }}
-                                                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
-                                                        isDarkMode ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white' : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
-                                                    }`}
-                                                >
-                                                    📋 Copy ID
-                                                </button>
-                                                <a
-                                                    href={`rustdesk://${selectedAsset.rustdesk_id}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-amber-500/25"
-                                                >
-                                                    🔌 Hubungkan Remote
-                                                </a>
+                                        ) : null}
+
+                                        {/* AnyDesk Premium Card */}
+                                        {selectedAsset.anydesk_id ? (
+                                            <div className={`border rounded-2xl p-5 flex items-center justify-between transition duration-200 ${
+                                                isDarkMode 
+                                                    ? 'bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/30' 
+                                                    : 'bg-gradient-to-r from-rose-50 via-red-50 to-rose-50 border-rose-200 shadow-sm'
+                                            }`}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-2xl shadow-inner">
+                                                        🔴
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>AnyDesk Remote Control</h4>
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                                                {selectedAsset.anydesk_status || 'online'}
+                                                            </span>
+                                                        </div>
+                                                        <p className={`text-xs mt-1 font-mono ${isDarkMode ? 'text-rose-400' : 'text-rose-700'}`}>
+                                                            AnyDesk ID: <span className="font-bold tracking-wider text-sm">{selectedAsset.anydesk_id}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(selectedAsset.anydesk_id);
+                                                            alert('AnyDesk ID tersalin: ' + selectedAsset.anydesk_id);
+                                                        }}
+                                                        className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                                                            isDarkMode ? 'bg-white/10 hover:bg-white/20 border-white/10 text-white' : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
+                                                        }`}
+                                                    >
+                                                        📋 Copy ID
+                                                    </button>
+                                                    <a
+                                                        href={`anydesk://${selectedAsset.anydesk_id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-400 text-white transition flex items-center gap-1.5 shadow-lg shadow-rose-500/25"
+                                                    >
+                                                        🔴 Remote AnyDesk
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : null}
+                                        ) : null}
+                                    </div>
                                 </div>
                             )}
 

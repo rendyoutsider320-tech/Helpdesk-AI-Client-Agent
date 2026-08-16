@@ -111,6 +111,9 @@ func main() {
 	monitoringEngine = monitoring.NewMonitoringEngine()
 	// monitoringEngine.Start() // Disabled simulated metrics to use real agent telemetry
 
+	// Initialize AI Config from DB / .env
+	ai.InitAIConfig(db.DB)
+
 	// Initialize tool registry
 	toolRegistry = tools.InitializeToolRegistry()
 	agentOrchestrator = ai.InitializeAgents(toolRegistry)
@@ -295,6 +298,11 @@ func main() {
 	aiGroup := router.Group("/api/v1/ai")
 	aiGroup.Use(AuthMiddleware())
 	{
+		aiGroup.GET("/config", handleGetAIConfig)
+		aiGroup.POST("/config", handleUpdateAIConfig)
+		aiGroup.GET("/models", handleGetAIModels)
+		aiGroup.POST("/test", handleTestAIModel)
+
 		aiGroup.POST("/analyze", handleAnalyzeIncident)
 		aiGroup.POST("/chat", handleChat)
 		aiGroup.POST("/chat/stream", handleChatStream)
@@ -1182,18 +1190,28 @@ func handleListAssets(c *gin.Context) {
 			itemModified = true
 		}
 		var reg db.AgentRegistry
-		if err := db.DB.Where("hostname = ?", assets[i].Hostname).First(&reg).Error; err == nil && reg.RustDeskID != "" && reg.RustDeskID != "982341506" && reg.RustDeskID != "359024062" {
-			if assets[i].RustDeskID != reg.RustDeskID {
+		if err := db.DB.Where("hostname = ?", assets[i].Hostname).First(&reg).Error; err == nil {
+			if reg.RustDeskID != "" && reg.RustDeskID != "982341506" && reg.RustDeskID != "359024062" && assets[i].RustDeskID != reg.RustDeskID {
 				assets[i].RustDeskID = reg.RustDeskID
 				assets[i].RustDeskStatus = reg.RustDeskStatus
 				itemModified = true
 			}
+			if reg.AnyDeskID != "" && assets[i].AnyDeskID != reg.AnyDeskID {
+				assets[i].AnyDeskID = reg.AnyDeskID
+				assets[i].AnyDeskStatus = reg.AnyDeskStatus
+				itemModified = true
+			}
 		} else {
 			var dev db.Device
-			if err := db.DB.Where("device_name = ?", assets[i].Hostname).First(&dev).Error; err == nil && dev.RustDeskID != "" && dev.RustDeskID != "982341506" && dev.RustDeskID != "359024062" {
-				if assets[i].RustDeskID != dev.RustDeskID {
+			if err := db.DB.Where("device_name = ?", assets[i].Hostname).First(&dev).Error; err == nil {
+				if dev.RustDeskID != "" && dev.RustDeskID != "982341506" && dev.RustDeskID != "359024062" && assets[i].RustDeskID != dev.RustDeskID {
 					assets[i].RustDeskID = dev.RustDeskID
 					assets[i].RustDeskStatus = dev.RustDeskStatus
+					itemModified = true
+				}
+				if dev.AnyDeskID != "" && assets[i].AnyDeskID != dev.AnyDeskID {
+					assets[i].AnyDeskID = dev.AnyDeskID
+					assets[i].AnyDeskStatus = dev.AnyDeskStatus
 					itemModified = true
 				}
 			}
@@ -1617,6 +1635,10 @@ func handleListDevices(c *gin.Context) {
 			if devices[i].RustDeskID == "" && asset.RustDeskID != "" {
 				devices[i].RustDeskID = asset.RustDeskID
 				devices[i].RustDeskStatus = asset.RustDeskStatus
+			}
+			if devices[i].AnyDeskID == "" && asset.AnyDeskID != "" {
+				devices[i].AnyDeskID = asset.AnyDeskID
+				devices[i].AnyDeskStatus = asset.AnyDeskStatus
 			}
 		}
 	}
@@ -2464,7 +2486,7 @@ func handleAnalyzeDraft(c *gin.Context) {
 	if analysis == nil {
 		analysis = &ai.AgentResponse{
 			Confidence:  75.0,
-			Suggestions: []string{"Silakan periksa koneksi jaringan Anda.", "Restart PC atau perangkat yang bermasalah."},
+			Suggestions: []string{"Tidak ada rekomendasi resolusi otomatis (di luar scope Knowledge Base)."},
 		}
 	}
 	if err != nil {
@@ -3158,6 +3180,11 @@ func handleTelegramUpdate(u integrations.Update) {
 					}
 				}
 
+				// Trigger notifications for Technicians & Admins
+				if notificationService != nil {
+					_ = notificationService.NotifyCommentAdded(activeTicket.ID, activeTicket.TicketNo, adminUser.ID, "📱 [Telegram Pelanggan]: "+text, false)
+				}
+
 				// Broadcast live WebSocket event to Admin & Technician dashboards
 				if hub != nil {
 					hub.Broadcast(map[string]interface{}{
@@ -3211,6 +3238,10 @@ func handleTelegramUpdate(u integrations.Update) {
 	}
 
 	log.Printf("Ticket created: %s", newTicket.TicketNo)
+
+	if notificationService != nil {
+		_ = notificationService.NotifyTicketCreated(newTicket.ID, newTicket.TicketNo, adminUser.ID)
+	}
 
 	// If there is an attachment/photo, download and save it
 	if photoFileID != "" {

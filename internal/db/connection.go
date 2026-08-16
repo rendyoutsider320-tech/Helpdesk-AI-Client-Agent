@@ -62,8 +62,8 @@ func InitDB() error {
 		log.Printf("Warning: Partition setup encountered issues: %v", err)
 	}
 
-	if err := DB.AutoMigrate(&Device{}, &AgentRegistry{}, &RefreshToken{}, &BlacklistedToken{}, &Ticket{}, &TechnicianPresence{}, &Asset{}, &SoftwareInventory{}, &USBInventory{}, &SystemEventLog{}, &MonitoredAppStatus{}); err != nil {
-		log.Printf("Warning: Failed to auto-migrate security tables: %v", err)
+	if err := DB.AutoMigrate(&Device{}, &AgentRegistry{}, &RefreshToken{}, &BlacklistedToken{}, &Ticket{}, &TechnicianPresence{}, &Asset{}, &SoftwareInventory{}, &USBInventory{}, &SystemEventLog{}, &MonitoredAppStatus{}, &SystemConfig{}, &AIConversation{}, &AIMessage{}); err != nil {
+		log.Printf("Warning: Failed to auto-migrate security and config tables: %v", err)
 	}
 
 
@@ -92,6 +92,7 @@ func applySQLMigrations() error {
 		{"ai_conversations", "migrations/013_add_ai_chat_persistence.up.sql"},
 		{"", "migrations/014_add_ticket_enterprise_fields.up.sql"},
 		{"", "migrations/015_add_ip_lan_and_ip_wifi_to_assets.up.sql"},
+		{"", "migrations/017_seed_printer_sop_kb.up.sql"},
 	}
 
 	for _, m := range migrations {

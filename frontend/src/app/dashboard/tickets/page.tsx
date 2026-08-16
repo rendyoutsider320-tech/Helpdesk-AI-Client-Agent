@@ -90,6 +90,11 @@ export default function TicketsPage() {
     fetchMetadata()
   }, [])
 
+  const commentsEndRef = useRef<HTMLDivElement | null>(null)
+  const scrollToBottom = () => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   // Load tickets list on filter/page/view change
   const loadTickets = async () => {
     setIsLoading(true)
@@ -106,9 +111,65 @@ export default function TicketsPage() {
     }
   }
 
+  // Silent background refresh for tickets list (no loading spinner flicker)
+  const loadTicketsSilent = async () => {
+    try {
+      const filters: any = { view: viewParam }
+      const response = await ticketApi.list(page, pageSize, filters)
+      if (response.data?.tickets) {
+        setTickets(response.data.tickets)
+        setTotal(response.data.total || 0)
+      }
+    } catch (err) {
+      // Silent catch for background refresh
+    }
+  }
+
   useEffect(() => {
     loadTickets()
   }, [page, viewParam])
+
+  // Real-time Auto-Refresh for Ticket List (every 5 seconds)
+  useEffect(() => {
+    const listTimer = setInterval(() => {
+      loadTicketsSilent()
+    }, 5000)
+    return () => clearInterval(listTimer)
+  }, [page, viewParam])
+
+  // Real-time Auto-Refresh for Active Ticket & Comments (every 2.5 seconds)
+  useEffect(() => {
+    if (!selectedTicket?.id) return
+
+    const commentsTimer = setInterval(async () => {
+      try {
+        const response = await ticketApi.get(selectedTicket.id)
+        if (response.data) {
+          setSelectedTicket((prev: any) => {
+            if (!prev) return response.data
+            const prevCommentsCount = prev.comments?.length || 0
+            const newCommentsCount = response.data.comments?.length || 0
+            
+            if (
+              newCommentsCount !== prevCommentsCount ||
+              response.data.status !== prev.status ||
+              response.data.updated_at !== prev.updated_at
+            ) {
+              if (newCommentsCount > prevCommentsCount) {
+                setTimeout(scrollToBottom, 100)
+              }
+              return response.data
+            }
+            return prev
+          })
+        }
+      } catch (err) {
+        // Silent catch for background polling
+      }
+    }, 2500)
+
+    return () => clearInterval(commentsTimer)
+  }, [selectedTicket?.id])
 
   // SLA countdown timer effect
   useEffect(() => {
@@ -269,6 +330,8 @@ export default function TicketsPage() {
       setSelectedTicket(response.data)
       setNewComment('')
       setIsInternalNote(false)
+      setTimeout(scrollToBottom, 100)
+      loadTicketsSilent()
     } catch (err) {
       console.error('Failed to add comment', err)
       alert('Gagal menambahkan komentar.')
@@ -956,6 +1019,7 @@ export default function TicketsPage() {
                       ) : (
                         <div className="text-center text-slate-500 py-8 text-sm">Belum ada aktivitas komentar di tiket ini.</div>
                       )}
+                      <div ref={commentsEndRef} />
                     </div>
 
                     {/* New Comment/Note form */}
@@ -1055,36 +1119,71 @@ export default function TicketsPage() {
                       <h4 className="text-sm font-bold text-white">Console Operasi Remote Agen</h4>
                       <p className="text-xs text-slate-400">Kirim perintah langsung ke client-agent yang terpasang di device terkait ({linkedAsset?.hostname || 'MKT-NUC'}).</p>
 
-                      {/* Quick RustDesk Remote Session Banner */}
-                      <div className="bg-gradient-to-r from-amber-950/50 via-slate-900 to-slate-900 border border-amber-500/30 rounded-xl p-4 flex items-center justify-between shadow-inner">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">
-                            📡
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h5 className="text-xs font-bold text-white">RustDesk Remote Control</h5>
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${linkedAsset?.rustdesk_id ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-                                {linkedAsset?.rustdesk_id ? (linkedAsset?.rustdesk_status || 'online') : 'not detected'}
-                              </span>
+                      {/* Dual Remote Session Banners (RustDesk + AnyDesk) */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* RustDesk Card */}
+                        <div className="bg-gradient-to-r from-amber-950/50 via-slate-900 to-slate-900 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-inner">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-lg">
+                              📡
                             </div>
-                            <p className="text-[11px] font-mono text-amber-400 mt-0.5">
-                              ID Klien: <span className="font-bold tracking-wider">{linkedAsset?.rustdesk_id || 'Belum Terdeteksi'}</span>
-                            </p>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="text-xs font-bold text-white">RustDesk</h5>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-bold uppercase border ${linkedAsset?.rustdesk_id ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                  {linkedAsset?.rustdesk_id ? (linkedAsset?.rustdesk_status || 'online') : 'n/a'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] font-mono text-amber-400 mt-0.5">
+                                ID: <span className="font-bold tracking-wider">{linkedAsset?.rustdesk_id || '-'}</span>
+                              </p>
+                            </div>
                           </div>
+                          {linkedAsset?.rustdesk_id ? (
+                            <a
+                              href={`rustdesk://${linkedAsset.rustdesk_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1 shadow-md shadow-amber-500/20"
+                            >
+                              🔌 RustDesk
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 italic">Not Reported</span>
+                          )}
                         </div>
-                        {linkedAsset?.rustdesk_id ? (
-                          <a
-                            href={`rustdesk://${linkedAsset.rustdesk_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition flex items-center gap-1.5 shadow-md shadow-amber-500/20"
-                          >
-                            🔌 Remote PC User
-                          </a>
-                        ) : (
-                          <span className="text-xs text-slate-500 italic">Agent belum melapor ID</span>
-                        )}
+
+                        {/* AnyDesk Card */}
+                        <div className="bg-gradient-to-r from-rose-950/50 via-slate-900 to-slate-900 border border-rose-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-inner">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-lg">
+                              🔴
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="text-xs font-bold text-white">AnyDesk</h5>
+                                <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-bold uppercase border ${linkedAsset?.anydesk_id ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                  {linkedAsset?.anydesk_id ? (linkedAsset?.anydesk_status || 'online') : 'n/a'}
+                                </span>
+                              </div>
+                              <p className="text-[10px] font-mono text-rose-400 mt-0.5">
+                                ID: <span className="font-bold tracking-wider">{linkedAsset?.anydesk_id || '-'}</span>
+                              </p>
+                            </div>
+                          </div>
+                          {linkedAsset?.anydesk_id ? (
+                            <a
+                              href={`anydesk://${linkedAsset.anydesk_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-rose-500 hover:bg-rose-400 text-white transition flex items-center gap-1 shadow-md shadow-rose-500/20"
+                            >
+                              🔴 AnyDesk
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 italic">Not Reported</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -138,6 +138,8 @@ type Device struct {
 	RustDeskStatus string     `gorm:"column:rustdesk_status" json:"rustdesk_status"`
 	AnyDeskID      string     `gorm:"column:anydesk_id" json:"anydesk_id"`
 	AnyDeskStatus  string     `gorm:"column:anydesk_status" json:"anydesk_status"`
+	ActiveUser     string     `gorm:"column:active_user" json:"active_user"`
+	AgentVersion   string     `gorm:"column:agent_version" json:"agent_version"`
 
 	// Relations
 	Metrics []Metric `json:"metrics,omitempty"`
@@ -263,6 +265,7 @@ type AgentRegistry struct {
 	RustDeskStatus string    `gorm:"column:rustdesk_status" json:"rustdesk_status"`
 	AnyDeskID      string    `gorm:"column:anydesk_id" json:"anydesk_id"`
 	AnyDeskStatus  string    `gorm:"column:anydesk_status" json:"anydesk_status"`
+	ActiveUser     string    `gorm:"column:active_user" json:"active_user"`
 	LastSeen       time.Time `json:"last_seen"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`

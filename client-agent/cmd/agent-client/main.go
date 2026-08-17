@@ -138,7 +138,7 @@ func runAgentLogic(stopChan chan struct{}) {
 		anydeskInfo := collector.GetAnyDeskInfo()
 		regData := map[string]interface{}{
 			"hostname":        agentID,
-			"agent_version":   "2.0.0-enterprise",
+			"agent_version":   "3.9.0",
 			"os":              runtime.GOOS,
 			"ip_address":      getLocalIP(), // Real local IP
 			"rustdesk_id":     rustdeskInfo.ID,

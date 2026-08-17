@@ -1336,7 +1336,7 @@ export default function TechnicianDashboard() {
                             {device.device_name}
                           </td>
                           <td className="py-2 px-3 text-slate-300 font-medium">
-                            {device.device_name === 'MKT-NUC' ? 'it-mkt' : 'user.local'}
+                            {device.active_user || device.assigned_user || '-'}
                           </td>
                           <td className="py-2 px-3">
                             <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-semibold ${getMetricColor(cpuVal)}`}>

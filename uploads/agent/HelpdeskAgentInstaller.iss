@@ -1,29 +1,31 @@
 ; =====================================================================
-; INNO SETUP SCRIPT: Helpdesk AI Client Agent Windows Installer (v3.7.0)
-; Automatic Background Windows Service Deployment with RustDesk Remote & Auto-Restart
+; INNO SETUP SCRIPT: Helpdesk AI Client Agent Windows Installer (v3.9.0)
+; Automatic Background Windows Service Deployment with Auto-Detect & Auto-Restart
 ; =====================================================================
 
 [Setup]
 AppId={{8F9A3B12-4C5D-6E7F-8A9B-0C1D2E3F4A5B}
 AppName=Helpdesk AI Client Agent
-AppVersion=3.7.0
+AppVersion=3.9.0
 AppPublisher=Helpdesk AI Team
 DefaultDirName={autopf}\HelpdeskAgent
 DefaultGroupName=Helpdesk AI
-OutputBaseFilename=HelpdeskAgent_Setup_v3.7.0
+OutputBaseFilename=HelpdeskAgent_Setup_v3.9.0
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64
 WizardStyle=modern
-UninstallDisplayIcon={app}\agent-client.exe
+SetupIconFile=app_icon.ico
+UninstallDisplayIcon={app}\app_icon.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; Salin executable agent-client.exe dan file konfigurasi .env (opsional)
+; Salin executable agent-client.exe, file ikon app_icon.ico, dan .env (opsional)
 Source: "agent-client.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "app_icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".env"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Run]

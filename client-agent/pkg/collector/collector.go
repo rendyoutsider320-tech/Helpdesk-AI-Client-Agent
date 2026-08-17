@@ -20,9 +20,10 @@ import (
 // CollectTelemetry returns a telemetry snapshot.
 func CollectTelemetry() map[string]interface{} {
 	telemetry := map[string]interface{}{
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"os":        runtime.GOOS,
-		"arch":      runtime.GOARCH,
+		"timestamp":   time.Now().UTC().Format(time.RFC3339),
+		"os":          runtime.GOOS,
+		"arch":        runtime.GOARCH,
+		"active_user": getActiveUser(),
 	}
 
 	switch runtime.GOOS {
@@ -784,4 +785,75 @@ print(json.dumps(results))
 		json.Unmarshal(pyOut, &results)
 	}
 	return results
+}
+
+func getActiveUser() string {
+	if runtime.GOOS == "windows" {
+		out, err := exec.Command("powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystem).UserName").Output()
+		if err == nil && len(out) > 0 {
+			res := strings.TrimSpace(string(out))
+			if idx := strings.Index(res, "\\"); idx != -1 {
+				res = res[idx+1:]
+			}
+			if res != "" && !strings.EqualFold(res, "SYSTEM") && !strings.EqualFold(res, "LOCAL SERVICE") && !strings.EqualFold(res, "NETWORK SERVICE") {
+				return res
+			}
+		}
+		outQ, errQ := exec.Command("cmd", "/c", "quser").Output()
+		if errQ == nil && len(outQ) > 0 {
+			lines := strings.Split(string(outQ), "\n")
+			for i, line := range lines {
+				if i > 0 && strings.TrimSpace(line) != "" {
+					fields := strings.Fields(line)
+					if len(fields) > 0 {
+						u := strings.TrimPrefix(fields[0], ">")
+						if u != "" && !strings.EqualFold(u, "SYSTEM") {
+							return u
+						}
+					}
+				}
+			}
+		}
+		if u := os.Getenv("USERNAME"); u != "" && !strings.EqualFold(u, "SYSTEM") && !strings.EqualFold(u, "LOCAL SERVICE") {
+			return u
+		}
+	} else if runtime.GOOS == "linux" {
+		// 1. Try active GUI process owner (gnome-shell, wayland, Xorg, etc.)
+		outCmd1, err1 := exec.Command("sh", "-c", "ps aux 2>/dev/null | grep -E 'gnome-shell|wayland|Xorg|kwin|xfce4-session|cinnamon' | grep -v root | awk '{print $1}' | head -n 1").Output()
+		if err1 == nil && len(strings.TrimSpace(string(outCmd1))) > 0 {
+			return strings.TrimSpace(string(outCmd1))
+		}
+
+		// 2. Try loginctl desktop sessions for interactive non-root user
+		outCmd2, err2 := exec.Command("sh", "-c", "loginctl list-sessions --no-legend 2>/dev/null | awk '$3 != \"root\" && $3 != \"\" {print $3}' | head -n 1").Output()
+		if err2 == nil && len(strings.TrimSpace(string(outCmd2))) > 0 {
+			return strings.TrimSpace(string(outCmd2))
+		}
+
+		// 3. Try who / w filtering out root
+		outCmd3, err3 := exec.Command("sh", "-c", "who 2>/dev/null | awk '{print $1}' | grep -v 'root' | head -n 1").Output()
+		if err3 == nil && len(strings.TrimSpace(string(outCmd3))) > 0 {
+			return strings.TrimSpace(string(outCmd3))
+		}
+
+		// 4. Try logname if non-root
+		outCmd4, err4 := exec.Command("logname").Output()
+		if err4 == nil && len(strings.TrimSpace(string(outCmd4))) > 0 && strings.TrimSpace(string(outCmd4)) != "root" {
+			return strings.TrimSpace(string(outCmd4))
+		}
+
+		// 5. Try checking non-root home directory
+		outCmd5, err5 := exec.Command("sh", "-c", "ls -1 /home 2>/dev/null | grep -v lost+found | head -n 1").Output()
+		if err5 == nil && len(strings.TrimSpace(string(outCmd5))) > 0 {
+			return strings.TrimSpace(string(outCmd5))
+		}
+
+		if u := os.Getenv("USER"); u != "" && u != "root" {
+			return u
+		}
+		if u := os.Getenv("LOGNAME"); u != "" && u != "root" {
+			return u
+		}
+	}
+	return ""
 }

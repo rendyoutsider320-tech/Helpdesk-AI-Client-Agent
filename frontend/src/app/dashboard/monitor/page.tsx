@@ -93,7 +93,7 @@ export default function MonitorPage() {
                         <p className="font-semibold text-slate-800 dark:text-white">{device.device_name}</p>
                       </div>
                       <span className="text-slate-300 font-medium">
-                        {device.username || device.user || '-'}
+                        {device.active_user || device.username || device.user || '-'}
                       </span>
                       <div>
                         <span className={`inline-flex px-2 py-0.5 rounded-md border text-xs font-semibold ${getMetricColor(cpuVal)}`}>

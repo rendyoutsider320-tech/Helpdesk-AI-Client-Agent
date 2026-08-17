@@ -151,6 +151,7 @@ func StartSubscribers() {
 			RustDeskStatus string  `json:"rustdesk_status"`
 			AnyDeskID      string  `json:"anydesk_id"`
 			AnyDeskStatus  string  `json:"anydesk_status"`
+			ActiveUser     string  `json:"active_user"`
 		}
 		if err := json.Unmarshal(m.Data, &data); err != nil {
 			return
@@ -172,6 +173,9 @@ func StartSubscribers() {
 		}
 		if data.AnyDeskStatus != "" {
 			agentUpdates["anydesk_status"] = data.AnyDeskStatus
+		}
+		if data.ActiveUser != "" {
+			agentUpdates["active_user"] = data.ActiveUser
 		}
 		db.DB.Model(&db.AgentRegistry{}).Where("hostname = ?", hostname).Updates(agentUpdates)
 
@@ -216,6 +220,9 @@ func StartSubscribers() {
 			}
 			if data.AnyDeskStatus != "" {
 				deviceUpdates["anydesk_status"] = data.AnyDeskStatus
+			}
+			if data.ActiveUser != "" {
+				deviceUpdates["active_user"] = data.ActiveUser
 			}
 			db.DB.Model(&device).Updates(deviceUpdates)
 		}

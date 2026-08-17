@@ -305,9 +305,6 @@ export default function SettingsPage() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-indigo-600 dark:text-indigo-400 font-semibold">
-                  Pusat Kendali Pengaturan
-                </p>
                 <h1 className="mt-1 text-3xl font-bold text-slate-900 dark:text-white">Preferensi Sistem & AI Copilot</h1>
               </div>
               <div className="rounded-full bg-indigo-50 border border-indigo-200 px-4 py-2 text-xs sm:text-sm font-semibold text-indigo-700 shadow-sm dark:bg-indigo-950/50 dark:border-indigo-800 dark:text-indigo-300">

@@ -1641,6 +1641,15 @@ func handleListDevices(c *gin.Context) {
 				devices[i].AnyDeskStatus = asset.AnyDeskStatus
 			}
 		}
+		var reg db.AgentRegistry
+		if err := db.DB.Where("hostname = ?", devices[i].DeviceName).First(&reg).Error; err == nil {
+			if devices[i].ActiveUser == "" && reg.ActiveUser != "" {
+				devices[i].ActiveUser = reg.ActiveUser
+			}
+			if reg.AgentVersion != "" {
+				devices[i].AgentVersion = reg.AgentVersion
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"devices": devices})

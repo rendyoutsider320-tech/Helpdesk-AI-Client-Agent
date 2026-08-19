@@ -225,6 +225,7 @@ func fillWindowsInventory(hw *HardwareInfo) {
 		`$name = $reg.ProductName; ` +
 		`$dispVer = $reg.DisplayVersion; if (-not $dispVer) { $dispVer = $reg.ReleaseId }; ` +
 		`$build = $reg.CurrentBuildNumber; if (-not $build) { $build = $reg.CurrentBuild }; ` +
+		`if ([int]$build -ge 22000 -and $name -like "*Windows 10*") { $name = $name -replace "Windows 10", "Windows 11" }; ` +
 		`$ubr = $reg.UBR; ` +
 		`$arch = (Get-CimInstance Win32_OperatingSystem).OSArchitecture; ` +
 		`@{ ProductName = "$name"; DisplayVersion = "$dispVer"; Build = "$build"; UBR = "$ubr"; Architecture = "$arch" } | ConvertTo-Json`
@@ -237,6 +238,11 @@ func fillWindowsInventory(hw *HardwareInfo) {
 		build, _ := osInfo["Build"].(string)
 		ubr, _ := osInfo["UBR"].(string)
 		arch, _ := osInfo["Architecture"].(string)
+
+		buildNum, _ := strconv.Atoi(build)
+		if buildNum >= 22000 && strings.Contains(prodName, "Windows 10") {
+			prodName = strings.Replace(prodName, "Windows 10", "Windows 11", 1)
+		}
 
 		if prodName != "" {
 			osFull := prodName
@@ -273,11 +279,26 @@ func fillWindowsInventory(hw *HardwareInfo) {
 			if line != "" && !strings.HasPrefix(line, "Node") {
 				parts := strings.Split(line, ",")
 				if len(parts) >= 4 {
-					hw.OSName = strings.TrimSpace(parts[1])
-					hw.OSVersion = fmt.Sprintf("%s (%s)", strings.TrimSpace(parts[3]), strings.TrimSpace(parts[2]))
+					osName := strings.TrimSpace(parts[1])
+					verStr := strings.TrimSpace(parts[3])
+					// Check build number from version string (e.g. 10.0.22000)
+					if strings.Contains(osName, "Windows 10") {
+						vParts := strings.Split(verStr, ".")
+						if len(vParts) >= 3 {
+							if bNum, _ := strconv.Atoi(vParts[2]); bNum >= 22000 {
+								osName = strings.Replace(osName, "Windows 10", "Windows 11", 1)
+							}
+						}
+					}
+					hw.OSName = osName
+					hw.OSVersion = fmt.Sprintf("%s (%s)", verStr, strings.TrimSpace(parts[2]))
 				}
 			}
 		}
+	}
+
+	if strings.Contains(hw.OSName, "Windows 10") && strings.Contains(hw.OSVersion, "26200") {
+		hw.OSName = strings.Replace(hw.OSName, "Windows 10", "Windows 11", 1)
 	}
 
 	// 6. Network IP, MAC, DNS, LAN/WiFi

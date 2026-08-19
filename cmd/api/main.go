@@ -1726,7 +1726,6 @@ func handleGetDashboardStats(c *gin.Context) {
 	var criticalAlerts int64
 	if err := db.DB.Model(&db.Alert{}).
 		Where("status = ?", "active").
-		Where("severity = ?", "critical").
 		Count(&criticalAlerts).Error; err != nil {
 
 		log.Println("ERROR criticalAlerts:", err)

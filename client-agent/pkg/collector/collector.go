@@ -35,6 +35,7 @@ func CollectTelemetry() map[string]interface{} {
 		telemetry["disks"] = getWindowsDisksDetail()
 		telemetry["services"] = getWindowsServices()
 		telemetry["printers"] = getWindowsPrinters()
+		telemetry["scanners"] = getWindowsScanners()
 		telemetry["network"] = getWindowsNetwork()
 		telemetry["erp_connectivity"] = checkERPConnectivity()
 		telemetry["recent_events"] = getWindowsEventLogs()
@@ -47,6 +48,7 @@ func CollectTelemetry() map[string]interface{} {
 		telemetry["disks"] = getLinuxDisksDetail()
 		telemetry["services"] = getLinuxServices()
 		telemetry["printers"] = getLinuxPrinters()
+		telemetry["scanners"] = getLinuxScanners()
 		telemetry["network"] = getLinuxNetwork()
 		telemetry["erp_connectivity"] = checkLinuxERPConnectivity()
 		telemetry["recent_events"] = getLinuxEventLogs()
@@ -57,6 +59,8 @@ func CollectTelemetry() map[string]interface{} {
 		telemetry["mem_percent"] = 0
 		telemetry["disk_usage"] = 0
 	}
+
+	telemetry["usb"] = collectUSBDevices()
 
 	rustdeskInfo := GetRustDeskInfo()
 	telemetry["rustdesk_id"] = rustdeskInfo.ID
@@ -152,10 +156,41 @@ func getWindowsServices() []map[string]interface{} {
 }
 
 func getWindowsPrinters() []map[string]interface{} {
-	// Monitor HP and Epson printers
-	cmd := "Get-CimInstance Win32_Printer | Where-Object { $_.Name -match 'HP|Epson' } | Select-Object Name, PrinterStatus, WorkOffline | ConvertTo-Json"
-	out, _ := exec.Command("powershell", "-NoProfile", "-Command", cmd).Output()
-	return []map[string]interface{}{{"raw": string(out)}}
+	// Monitor ALL printers (Thermal, Office, POS, Receipt, Label, Laser, Inkjet, etc.)
+	cmd := "Get-CimInstance Win32_Printer | Select-Object Name, PrinterStatus, WorkOffline, DetectedErrorState, PortName | ConvertTo-Json"
+	out, err := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd).Output()
+	var list []map[string]interface{}
+	if err == nil && len(out) > 0 {
+		trimmed := strings.TrimSpace(string(out))
+		if strings.HasPrefix(trimmed, "[") {
+			_ = json.Unmarshal(out, &list)
+		} else if strings.HasPrefix(trimmed, "{") {
+			var obj map[string]interface{}
+			if json.Unmarshal(out, &obj) == nil {
+				list = append(list, obj)
+			}
+		}
+	}
+	return list
+}
+
+func getWindowsScanners() []map[string]interface{} {
+	// Monitor Image/Scanner PnP devices & Barcode scanners
+	cmd := "Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPClass -eq 'Image' -or $_.PNPClass -eq 'Scanner' -or $_.Name -like '*Scanner*' -or $_.Name -like '*Barcode*' -or $_.Name -like '*Honeywell*' -or $_.Name -like '*Zebra*' -or $_.Name -like '*Fujitsu*' } | Select-Object Name, Present, Status, PNPDeviceID | ConvertTo-Json"
+	out, err := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd).Output()
+	var list []map[string]interface{}
+	if err == nil && len(out) > 0 {
+		trimmed := strings.TrimSpace(string(out))
+		if strings.HasPrefix(trimmed, "[") {
+			_ = json.Unmarshal(out, &list)
+		} else if strings.HasPrefix(trimmed, "{") {
+			var obj map[string]interface{}
+			if json.Unmarshal(out, &obj) == nil {
+				list = append(list, obj)
+			}
+		}
+	}
+	return list
 }
 
 func getWindowsNetwork() map[string]interface{} {
@@ -624,6 +659,14 @@ func getLinuxPrinters() []map[string]interface{} {
 	return []map[string]interface{}{{"raw": string(out)}}
 }
 
+func getLinuxScanners() []map[string]interface{} {
+	out, err := exec.Command("lsusb").Output()
+	if err != nil {
+		return nil
+	}
+	return []map[string]interface{}{{"raw": string(out)}}
+}
+
 func getLinuxNetwork() map[string]interface{} {
 	data, err := os.ReadFile("/proc/net/dev")
 	var stats string
@@ -788,7 +831,8 @@ print(json.dumps(results))
 }
 
 func getActiveUser() string {
-	if runtime.GOOS == "windows" {
+	switch runtime.GOOS {
+	case "windows":
 		out, err := exec.Command("powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystem).UserName").Output()
 		if err == nil && len(out) > 0 {
 			res := strings.TrimSpace(string(out))
@@ -817,7 +861,7 @@ func getActiveUser() string {
 		if u := os.Getenv("USERNAME"); u != "" && !strings.EqualFold(u, "SYSTEM") && !strings.EqualFold(u, "LOCAL SERVICE") {
 			return u
 		}
-	} else if runtime.GOOS == "linux" {
+	case "linux":
 		// 1. Try active GUI process owner (gnome-shell, wayland, Xorg, etc.)
 		outCmd1, err1 := exec.Command("sh", "-c", "ps aux 2>/dev/null | grep -E 'gnome-shell|wayland|Xorg|kwin|xfce4-session|cinnamon' | grep -v root | awk '{print $1}' | head -n 1").Output()
 		if err1 == nil && len(strings.TrimSpace(string(outCmd1))) > 0 {

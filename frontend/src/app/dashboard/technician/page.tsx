@@ -888,16 +888,16 @@ export default function TechnicianDashboard() {
   // Return loading spinner or error banner while hydrating or verifying authentication
   if (!isHydrated || !isChecked || loading || error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="text-center space-y-4 max-w-md p-6 bg-white dark:bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl">
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
+        <div className="text-center space-y-4 max-w-md p-6 bg-slate-900/90 border border-white/10 rounded-3xl shadow-2xl backdrop-blur-xl">
           {error ? (
             <>
               <div className="text-red-500 text-4xl">⚠️</div>
               <h2 className="text-lg font-bold text-white">Terjadi Kesalahan</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{error}</p>
+              <p className="text-sm text-slate-400">{error}</p>
               <button 
                 onClick={() => window.location.reload()}
-                className="mt-4 px-6 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl transition-all"
+                className="mt-4 px-6 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-500/20"
               >
                 Muat Ulang Halaman
               </button>
@@ -905,7 +905,7 @@ export default function TechnicianDashboard() {
           ) : (
             <>
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
-              <p className="text-slate-400 font-medium animate-pulse">Memuat Cockpit Teknisi...</p>
+              <p className="text-slate-300 font-medium animate-pulse">Memuat Cockpit Teknisi...</p>
             </>
           )}
         </div>

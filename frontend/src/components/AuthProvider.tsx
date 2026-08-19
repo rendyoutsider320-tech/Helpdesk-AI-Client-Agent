@@ -34,22 +34,38 @@ export default function AuthProvider({
   children: React.ReactNode
 }) {
   const [isHydrated, setIsHydrated] = useState(false)
+  const [loadingText, setLoadingText] = useState('Memuat Helpdesk AI...')
 
   useEffect(() => {
     try {
       useAuthStore.getState().loadFromStorage()
+      const savedUserStr = localStorage.getItem('user')
+      if (savedUserStr) {
+        try {
+          const u = JSON.parse(savedUserStr)
+          if (u.role === 'admin') {
+            setLoadingText('Memuat Cockpit Administrator...')
+          } else if (u.role === 'technician') {
+            setLoadingText('Memuat Cockpit Teknisi...')
+          }
+        } catch (_) {}
+      }
     } catch (e) {
       console.error('Auth hydration error:', e)
     } finally {
-      setIsHydrated(true)
+      setTimeout(() => {
+        setIsHydrated(true)
+      }, 500)
     }
   }, [])
 
   if (!isHydrated) {
     return (
-      <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
-        <div className="h-10 w-10 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin" />
-        <p className="text-xs font-semibold text-slate-400 tracking-wider">Memuat Helpdesk AI...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
+        <div className="text-center space-y-4 max-w-md p-6 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+          <p className="text-slate-400 font-medium animate-pulse">{loadingText}</p>
+        </div>
       </div>
     )
   }

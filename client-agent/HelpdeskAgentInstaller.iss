@@ -1,16 +1,16 @@
 ; =====================================================================
-; INNO SETUP SCRIPT: Helpdesk AI Client Agent Windows Installer (v3.9.0)
+; INNO SETUP SCRIPT: Helpdesk AI Client Agent Windows Installer (v4.0.0)
 ; Automatic Background Windows Service Deployment with Auto-Detect & Auto-Restart
 ; =====================================================================
 
 [Setup]
 AppId={{8F9A3B12-4C5D-6E7F-8A9B-0C1D2E3F4A5B}
 AppName=Helpdesk AI Client Agent
-AppVersion=3.9.0
+AppVersion=4.0.0
 AppPublisher=Helpdesk AI Team
 DefaultDirName={autopf}\HelpdeskAgent
 DefaultGroupName=Helpdesk AI
-OutputBaseFilename=HelpdeskAgent_Setup_v3.9.0
+OutputBaseFilename=HelpdeskAgent_Setup_v4.0.0
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin

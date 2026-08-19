@@ -2,13 +2,20 @@ package automation
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/helpdesk-ai/core/internal/db"
 	"github.com/nats-io/nats.go"
+)
+
+var (
+	usbDeviceStateLock sync.Mutex
+	knownUSBDevicesMap = make(map[string]map[string]string)
 )
 
 // StartSubscribers starts all NATS listeners for agent data
@@ -152,6 +159,10 @@ func StartSubscribers() {
 			AnyDeskID      string  `json:"anydesk_id"`
 			AnyDeskStatus  string  `json:"anydesk_status"`
 			ActiveUser     string  `json:"active_user"`
+			Printers       any     `json:"printers"`
+			Scanners       any     `json:"scanners"`
+			USBDevices     any     `json:"usb_devices"`
+			USB            any     `json:"usb"`
 		}
 		if err := json.Unmarshal(m.Data, &data); err != nil {
 			return
@@ -316,6 +327,250 @@ func StartSubscribers() {
 			MetricLabel: "Total Disk Usage %",
 			Timestamp:   time.Now(),
 		})
+
+		// 2b. Auto-create/update Alert Log if CPU/RAM/Disk thresholds are exceeded
+		checkThresholdAlert := func(metricType string, val float64, threshold float64, label string) {
+			if val > threshold {
+				sev := "warning"
+				if val > 85 {
+					sev = "critical"
+				}
+				valStr := fmt.Sprintf("%.1f%%", val)
+				msg := fmt.Sprintf("Penggunaan %s tinggi pada %s (%.1f%%)", label, hostname, val)
+
+				var existing db.Alert
+				err := db.DB.Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricType, "active").First(&existing).Error
+				if err == nil {
+					existing.Value = valStr
+					existing.Message = msg
+					existing.Severity = sev
+					existing.UpdatedAt = time.Now()
+					db.DB.Save(&existing)
+				} else {
+					devIdCopy := device.ID
+					db.DB.Create(&db.Alert{
+						ID:        uuid.New().String(),
+						DeviceID:  &devIdCopy,
+						Severity:  sev,
+						Metric:    metricType,
+						Value:     valStr,
+						Message:   msg,
+						Status:    "active",
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					})
+				}
+			} else {
+				// Auto-resolve if metric returned back to normal below threshold
+				db.DB.Model(&db.Alert{}).Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricType, "active").Updates(map[string]interface{}{
+					"status":      "resolved",
+					"resolved_at": time.Now(),
+				})
+			}
+		}
+
+		checkThresholdAlert("cpu", data.CPUUsage, 80.0, "CPU")
+		checkThresholdAlert("ram", data.RAMUsage, 80.0, "RAM")
+		checkThresholdAlert("disk_usage", diskVal, 85.0, "Disk")
+
+		// 2c. Check Printer Status (Thermal, Office, POS, Receipt, Label, Laser) & USB disconnections
+		if data.Printers != nil {
+			var printerList []map[string]interface{}
+			if pBytes, err := json.Marshal(data.Printers); err == nil {
+				_ = json.Unmarshal(pBytes, &printerList)
+			}
+			for _, p := range printerList {
+				name, _ := p["Name"].(string)
+				if name == "" {
+					continue
+				}
+				// Skip virtual / PDF printers
+				lowerName := strings.ToLower(name)
+				if strings.Contains(lowerName, "pdf") || strings.Contains(lowerName, "xps") || strings.Contains(lowerName, "onenote") || strings.Contains(lowerName, "fax") {
+					continue
+				}
+
+				workOffline, _ := p["WorkOffline"].(bool)
+				printerStatus, _ := p["PrinterStatus"].(float64)
+				detectedErrorState, _ := p["DetectedErrorState"].(float64)
+
+				isOffline := workOffline || printerStatus == 7 || detectedErrorState == 4 || detectedErrorState == 2
+				metricKey := fmt.Sprintf("printer_offline_%s", strings.ToLower(strings.ReplaceAll(name, " ", "_")))
+
+				// Categorize Thermal vs Office printer
+				printerType := "Printer Office"
+				if strings.Contains(lowerName, "tm-") || strings.Contains(lowerName, "thermal") || strings.Contains(lowerName, "pos") || strings.Contains(lowerName, "receipt") || strings.Contains(lowerName, "label") || strings.Contains(lowerName, "xprinter") || strings.Contains(lowerName, "tsc") || strings.Contains(lowerName, "bixolon") || strings.Contains(lowerName, "blueprint") || strings.Contains(lowerName, "kassen") {
+					printerType = "Printer Thermal"
+				}
+
+				if isOffline {
+					msg := fmt.Sprintf("ALERT REAL-TIME: Perangkat %s (%s) dalam kondisi Offline / Kabel USB Terlepas pada %s", printerType, name, hostname)
+					var existing db.Alert
+					err := db.DB.Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricKey, "active").First(&existing).Error
+					if err == nil {
+						existing.Message = msg
+						existing.UpdatedAt = time.Now()
+						db.DB.Save(&existing)
+					} else {
+						devIdCopy := device.ID
+						db.DB.Create(&db.Alert{
+							ID:        uuid.New().String(),
+							DeviceID:  &devIdCopy,
+							Severity:  "critical",
+							Metric:    metricKey,
+							Value:     "Offline / Cable Disconnected",
+							Message:   msg,
+							Status:    "active",
+							CreatedAt: time.Now(),
+							UpdatedAt: time.Now(),
+						})
+					}
+				} else {
+					// Auto-resolve if printer is online/healthy again
+					db.DB.Model(&db.Alert{}).Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricKey, "active").Updates(map[string]interface{}{
+						"status":      "resolved",
+						"resolved_at": time.Now(),
+					})
+				}
+			}
+		}
+
+		// 2d. Check Scanner & Barcode Reader status
+		if data.Scanners != nil {
+			var scannerList []map[string]interface{}
+			if sBytes, err := json.Marshal(data.Scanners); err == nil {
+				_ = json.Unmarshal(sBytes, &scannerList)
+			}
+			for _, s := range scannerList {
+				name, _ := s["Name"].(string)
+				if name == "" {
+					continue
+				}
+				present, hasPresent := s["Present"].(bool)
+				statusStr, _ := s["Status"].(string)
+
+				isDisconnected := (hasPresent && !present) || (statusStr != "" && statusStr != "OK")
+				metricKey := fmt.Sprintf("scanner_offline_%s", strings.ToLower(strings.ReplaceAll(name, " ", "_")))
+
+				if isDisconnected {
+					msg := fmt.Sprintf("ALERT REAL-TIME: Unit Scanner / Barcode Reader (%s) Terputus / Kabel USB Cabut pada %s", name, hostname)
+					var existing db.Alert
+					err := db.DB.Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricKey, "active").First(&existing).Error
+					if err == nil {
+						existing.Message = msg
+						existing.UpdatedAt = time.Now()
+						db.DB.Save(&existing)
+					} else {
+						devIdCopy := device.ID
+						db.DB.Create(&db.Alert{
+							ID:        uuid.New().String(),
+							DeviceID:  &devIdCopy,
+							Severity:  "critical",
+							Metric:    metricKey,
+							Value:     "Disconnected",
+							Message:   msg,
+							Status:    "active",
+							CreatedAt: time.Now(),
+							UpdatedAt: time.Now(),
+						})
+					}
+				} else {
+					// Auto-resolve if scanner is reconnected
+					db.DB.Model(&db.Alert{}).Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricKey, "active").Updates(map[string]interface{}{
+						"status":      "resolved",
+						"resolved_at": time.Now(),
+					})
+				}
+			}
+		}
+
+		// 2e. Check USB Devices (Real-time Disconnection Tracking for Honeywell, Scanners, Printers, Barcode Readers)
+		usbPayload := data.USBDevices
+		if usbPayload == nil {
+			usbPayload = data.USB
+		}
+		if usbPayload != nil {
+			var usbList []map[string]interface{}
+			if uBytes, err := json.Marshal(usbPayload); err == nil {
+				_ = json.Unmarshal(uBytes, &usbList)
+			}
+
+			currentConnected := make(map[string]string)
+			for _, u := range usbList {
+				name, _ := u["name"].(string)
+				if name == "" {
+					name, _ = u["Name"].(string)
+				}
+				if name == "" {
+					continue
+				}
+				statusStr, _ := u["status"].(string)
+				if statusStr == "" {
+					statusStr, _ = u["Status"].(string)
+				}
+				if statusStr == "" {
+					statusStr = "OK"
+				}
+				currentConnected[name] = statusStr
+			}
+
+			usbDeviceStateLock.Lock()
+			if knownUSBDevicesMap[device.ID] == nil {
+				knownUSBDevicesMap[device.ID] = make(map[string]string)
+			}
+			knownMap := knownUSBDevicesMap[device.ID]
+
+			// Register any new monitored USB devices found in payload
+			for name, status := range currentConnected {
+				lowerName := strings.ToLower(name)
+				if strings.Contains(lowerName, "honeywell") || strings.Contains(lowerName, "zebra") || strings.Contains(lowerName, "scanner") || strings.Contains(lowerName, "barcode") || strings.Contains(lowerName, "printer") || strings.Contains(lowerName, "thermal") || strings.Contains(lowerName, "epson") || strings.Contains(lowerName, "xprinter") || strings.Contains(lowerName, "tsc") {
+					knownMap[name] = status
+				}
+			}
+
+			// Evaluate alerts for all known monitored peripherals on this device
+			for name := range knownMap {
+				lowerName := strings.ToLower(name)
+				if !(strings.Contains(lowerName, "honeywell") || strings.Contains(lowerName, "zebra") || strings.Contains(lowerName, "scanner") || strings.Contains(lowerName, "barcode") || strings.Contains(lowerName, "printer") || strings.Contains(lowerName, "thermal") || strings.Contains(lowerName, "epson") || strings.Contains(lowerName, "xprinter") || strings.Contains(lowerName, "tsc")) {
+					continue
+				}
+
+				status, isConnected := currentConnected[name]
+				metricKey := fmt.Sprintf("usb_device_%s", strings.ToLower(strings.ReplaceAll(name, " ", "_")))
+				isDisconnected := !isConnected || (status != "OK" && status != "Active")
+
+				if isDisconnected {
+					msg := fmt.Sprintf("ALERT REAL-TIME: Perangkat USB (%s) Terputus / Kabel USB Cabut pada %s", name, hostname)
+					var existing db.Alert
+					err := db.DB.Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricKey, "active").First(&existing).Error
+					if err == nil {
+						existing.Message = msg
+						existing.UpdatedAt = time.Now()
+						db.DB.Save(&existing)
+					} else {
+						devIdCopy := device.ID
+						db.DB.Create(&db.Alert{
+							ID:        uuid.New().String(),
+							DeviceID:  &devIdCopy,
+							Severity:  "critical",
+							Metric:    metricKey,
+							Value:     "Disconnected",
+							Message:   msg,
+							Status:    "active",
+							CreatedAt: time.Now(),
+							UpdatedAt: time.Now(),
+						})
+					}
+				} else {
+					// Auto-resolve if reconnected & OK
+					db.DB.Model(&db.Alert{}).Where("device_id = ? AND metric = ? AND status = ?", device.ID, metricKey, "active").Updates(map[string]interface{}{
+						"status":      "resolved",
+						"resolved_at": time.Now(),
+					})
+				}
+			}
+			usbDeviceStateLock.Unlock()
+		}
 
 		// 3. Save Recent Events (System Event Logs)
 		if data.RecentEvents != nil {

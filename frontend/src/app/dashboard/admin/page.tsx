@@ -49,11 +49,6 @@ export default function AdminDashboard() {
     return () => window.removeEventListener('themechange', syncTheme)
   }, [])
   
-  // Return null while store is hydrating to prevent SSR mismatch
-  if (!isHydrated) {
-    return null
-  }
-  
   // Auth guard - redirect if not authenticated or not admin
   // Check localStorage first to avoid race condition
   useEffect(() => {
@@ -187,7 +182,8 @@ export default function AdminDashboard() {
           ticketApi.list(1, 20),
           dashboardApi.stats(),
           dashboardApi.summary(),
-          dashboardApi.trends()
+          dashboardApi.trends(),
+          new Promise((resolve) => setTimeout(resolve, 600))
         ])
 
         setQueueTickets(queueRes.data?.tickets || [])
@@ -365,13 +361,29 @@ export default function AdminDashboard() {
     }
   }, [isChecked])
 
-  // Show loading while checking auth
-  if (!isChecked) {
+  // Show loading while hydrating, checking auth, or loading initial dashboard data
+  if (!isHydrated || !isChecked || isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
-          <p className={`mt-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
+        <div className="text-center space-y-4 max-w-md p-6 bg-slate-900/90 border border-white/10 rounded-3xl shadow-2xl backdrop-blur-xl">
+          {error ? (
+            <>
+              <div className="text-red-500 text-4xl">⚠️</div>
+              <h2 className="text-lg font-bold text-white">Terjadi Kesalahan</h2>
+              <p className="text-sm text-slate-400">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 px-6 py-2 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-sky-500/20"
+              >
+                Muat Ulang Halaman
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+              <p className="text-slate-300 font-medium animate-pulse">Memuat Cockpit Administrator...</p>
+            </>
+          )}
         </div>
       </div>
     )

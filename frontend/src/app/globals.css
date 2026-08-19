@@ -11,10 +11,15 @@ html {
 }
 
 body {
-  background-color: #eff6ff;
-  background-image: radial-gradient(ellipse at 10% 10%, rgba(56, 189, 248, 0.12), transparent 20%), radial-gradient(ellipse at 90% 90%, rgba(59, 130, 246, 0.08), transparent 25%);
-  color: #0f1724;
-  transition: background-color 0.5s ease, color 0.3s ease;
+  background-color: #050b14;
+  background-image: 
+    linear-gradient(rgba(0, 210, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 210, 255, 0.015) 1px, transparent 1px),
+    radial-gradient(ellipse at 10% 10%, rgba(0, 210, 255, 0.12), transparent 35%),
+    radial-gradient(ellipse at 90% 90%, rgba(139, 92, 246, 0.08), transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(16, 185, 129, 0.04), transparent 50%);
+  background-size: 35px 35px, 35px 35px, 100% 100%, 100% 100%, 100% 100%;
+  color: #e2e8f0;
 }
 
 /* Deep Cyber-Neon Dark Mode Theme matching user image */

@@ -22,6 +22,7 @@ type DeviceHealthSummary struct {
 	ActiveDevices  int64 `json:"active_devices"`
 	OfflineDevices int64 `json:"offline_devices"`
 	StaleDevices   int64 `json:"stale_devices"`
+	CriticalAlerts int64 `json:"critical_alerts"`
 }
 
 type TechnicianWorkloadEntry struct {
@@ -56,6 +57,7 @@ type SLAPerformanceSummary struct {
 }
 
 type DashboardSummary struct {
+	CriticalAlerts     int64                     `json:"critical_alerts"`
 	TicketAge          TicketAgeSummary          `json:"ticket_age"`
 	DeviceHealth       DeviceHealthSummary       `json:"device_health"`
 	TechnicianWorkload []TechnicianWorkloadEntry `json:"technician_workload"`
@@ -318,6 +320,9 @@ func GetDashboardSummary() (*DashboardSummary, error) {
 		reopenRate = (float64(reopenCount) / float64(totalTickets)) * 100.0
 	}
 
+	var activeAlertsCount int64
+	db.DB.Model(&db.Alert{}).Where("status = ?", "active").Count(&activeAlertsCount)
+
 	slaMetPercentage := 100.0
 	totalSLAEvaluated := slaHealthyCount + slaBreachCount
 	if totalSLAEvaluated > 0 {
@@ -325,6 +330,7 @@ func GetDashboardSummary() (*DashboardSummary, error) {
 	}
 
 	return &DashboardSummary{
+		CriticalAlerts: activeAlertsCount,
 		TicketAge: TicketAgeSummary{
 			TotalOpen:         totalOpen,
 			AverageOpenHours:  averageSeconds / 3600,
@@ -339,6 +345,7 @@ func GetDashboardSummary() (*DashboardSummary, error) {
 			ActiveDevices:  activeDevices,
 			OfflineDevices: offlineDevices,
 			StaleDevices:   staleDevices,
+			CriticalAlerts: activeAlertsCount,
 		},
 		TechnicianWorkload: workload,
 		SLAPerformance: SLAPerformanceSummary{
